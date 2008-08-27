@@ -22,20 +22,34 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-#include "application.h"
-#include "frmLoadProject.h"
-#include <wx/sysopt.h>
+#include "utility.h"
+extern "C" {
+#include <lauxlib.h>
+}
 
-IMPLEMENT_APP(LuaEditApp)
-
-bool LuaEditApp::OnInit()
+void ShowExceptionMessageBox(RainException* pE, bool bDeleteE)
 {
-	wxSystemOptions::SetOption(wxT("msw.remap"), 0);
-  wxInitAllImageHandlers();
+  RainExceptionDialog oDialog(wxGetActiveWindow(), pE);
+  oDialog.ShowModal();
+  if(bDeleteE)
+    delete pE;
+}
 
-  frmLoadProject *pForm = new frmLoadProject();
-  pForm->Show(TRUE);
-  SetTopWindow(pForm);
+void luaX_pushrstring(lua_State *L, const RainString& s)
+{
+  luaL_Buffer b;
+  luaL_buffinit(L, &b);
+  for(size_t i = 0; i < s.length(); ++i)
+    luaL_addchar(&b, s.getCharacters()[i]);
+  luaL_pushresult(&b);
+}
 
-  return TRUE;
+void luaX_pushwstring(lua_State *L, const wchar_t* s)
+{
+  luaL_Buffer b;
+  luaL_buffinit(L, &b);
+  size_t iLen = wcslen(s);
+  for(size_t i = 0; i < iLen; ++i)
+    luaL_addchar(&b, s[i]);
+  luaL_pushresult(&b);
 }

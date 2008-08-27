@@ -24,13 +24,15 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "frmEditor.h"
 #include "InheritanceBuilder.h"
-#include "../RGD2Lua/utility.h"
+#include "utility.h"
 #include <wx/statusbr.h>
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 }
 #include <wx/splitter.h>
+#include <wx/utils.h>
+#include <wx/mstream.h>
 #include "stdext.h"
 
 BEGIN_EVENT_TABLE(frmLuaEditor, wxFrame)
@@ -303,8 +305,50 @@ frmLuaEditor::frmLuaEditor()
   m_oManager.AddPane(pNotebook, wxAuiPaneInfo().Name(L"notebook_main").CenterPane().PaneBorder(false));
 
   _initTextControl();
+  _initToolbar();
 
   m_oManager.Update();
+}
+
+wxImage frmLuaEditor::_loadPng(wxString sName) throw(...)
+{
+  HRSRC hResource = FindResource(wxGetInstance(), sName, wxT("PNG"));
+  if(hResource == 0)
+   THROW_SIMPLE_1(L"Cannot find PNG resource \'%s\'", sName.c_str());
+
+  HGLOBAL hData = LoadResource(wxGetInstance(), hResource);
+  if(hData == 0)
+    THROW_SIMPLE_1(L"Cannot load PNG resource \'%s\'", sName.c_str());
+
+  const void *pData = LockResource(hData);
+  if(pData == 0)
+    THROW_SIMPLE_1(L"Cannot lock PNG resource \'%s\'", sName.c_str());
+
+  wxMemoryInputStream oInput(pData, SizeofResource(wxGetInstance(), hResource));
+  wxImage oImg;
+  if(!oImg.LoadFile(oInput, wxBITMAP_TYPE_PNG))
+    THROW_SIMPLE_1(L"Cannot load PNG resource \'%s\' from stream", sName.c_str());
+
+  return oImg;
+}
+
+void frmLuaEditor::_initToolbar()
+{
+  wxToolBar *pToolbar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_FLAT | wxTB_NODIVIDER);
+  pToolbar->SetToolBitmapSize(wxSize(48,48));
+
+  try
+  {
+    pToolbar->AddTool('LUA', wxT("Save Lua"), wxBitmap(_loadPng(wxT("IDP_SAVELUA"))), wxT("Save the current file as Lua (editing format)") );
+    pToolbar->AddTool('BIN', wxT("Save Binary"), wxBitmap(_loadPng(wxT("IDP_SAVEBIN"))), wxT("Save the current file as RGD (binary game format)") );
+  }
+  catch(RainException *pE)
+  {
+    EXCEPTION_MESSAGE_BOX(L"Cannot load toolbar icon(s)", pE);
+  }
+  pToolbar->Realize();
+
+  m_oManager.AddPane(pToolbar, wxAuiPaneInfo().Name(wxT("tbSave")).Caption(wxT("Save"))/*.ToolbarPane()*/.Top().Fixed().Dock().Row(5).CloseButton(false).CaptionVisible(false).Gripper(true));
 }
 
 void frmLuaEditor::onStyleNeeded(wxStyledTextEvent &e)

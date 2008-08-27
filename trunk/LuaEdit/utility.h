@@ -22,20 +22,28 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
-#include "application.h"
-#include "frmLoadProject.h"
-#include <wx/sysopt.h>
+#pragma once
+// For compilers that support precompilation, includes "wx/wx.h".
+#include "wx/wxprec.h"
 
-IMPLEMENT_APP(LuaEditApp)
+#ifdef __BORLANDC__
+    #pragma hdrstop
+#endif
 
-bool LuaEditApp::OnInit()
-{
-	wxSystemOptions::SetOption(wxT("msw.remap"), 0);
-  wxInitAllImageHandlers();
-
-  frmLoadProject *pForm = new frmLoadProject();
-  pForm->Show(TRUE);
-  SetTopWindow(pForm);
-
-  return TRUE;
+// for all others, include the necessary headers (this file is usually all you
+// need because it includes almost all "standard" wxWidgets headers)
+#ifndef WX_PRECOMP
+    #include "wx/wx.h"
+#endif
+// ----------------------------
+#include <rainman2.h>
+extern "C" {
+#include <lua.h>
 }
+
+void luaX_pushrstring(lua_State *L, const RainString& s);
+void luaX_pushwstring(lua_State *L, const wchar_t* s);
+void ShowExceptionMessageBox(RainException* pE, bool bDeleteE = true);
+
+#define EXCEPTION_MESSAGE_BOX(message, e) ShowExceptionMessageBox(new RainException(__WFILE__, __LINE__, message, e));
+#define CATCH_MESSAGE_BOX(message, cleanup) catch (RainException *e) { EXCEPTION_MESSAGE_BOX(message, e); cleanup; }

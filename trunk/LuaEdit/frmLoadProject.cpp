@@ -24,7 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "frmLoadProject.h"
 #include "frmEditor.h"
-#include "../RGD2Lua/utility.h"
+#include "utility.h"
 #include <wx/dirdlg.h>
 #include <wx/utils.h>
 
@@ -252,6 +252,8 @@ void frmLoadProject::onLoadRecent(wxCommandEvent& e)
     {
       m_vRecentSources.erase(m_vRecentSources.begin() + e.GetSelection());
       m_vRecentSources.insert(m_vRecentSources.begin(), pRecentSource);
+      m_pRecentList->Insert(m_pRecentList->GetString(e.GetSelection()), 0);
+      m_pRecentList->Delete(e.GetSelection() + 1);
       _saveRecentList();
     }
     _loadFromRecent(pRecentSource);
