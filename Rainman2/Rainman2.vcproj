@@ -199,6 +199,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\exception_dialog.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\file.cpp"
 				>
 			</File>
@@ -246,6 +250,10 @@
 			</File>
 			<File
 				RelativePath=".\exception.h"
+				>
+			</File>
+			<File
+				RelativePath=".\exception_dialog.h"
 				>
 			</File>
 			<File

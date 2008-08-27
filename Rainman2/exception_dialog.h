@@ -23,20 +23,48 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
-#pragma warning (push)
-#include "../api.h"
-#include "../archive.h"
-#include "../attributes.h"
-#include "../exception.h"
-#include "../exception_dialog.h"
-#include "../file.h"
-#include "../hash.h"
-#include "../luattrib.h"
-#include "../memfile.h"
-// new_trace.h is for internal use only
-// rainman2.h is this file
-// resource.h is for internal use only
-#include "../rgd_dict.h"
-#include "../string.h"
-#include "../va_copy.h"
-#pragma warning (pop)
+// For compilers that support precompilation, includes "wx/wx.h".
+#include "wx/wxprec.h"
+
+#ifdef __BORLANDC__
+    #pragma hdrstop
+#endif
+
+// for all others, include the necessary headers (this file is usually all you
+// need because it includes almost all "standard" wxWidgets headers)
+#ifndef WX_PRECOMP
+    #include "wx/wx.h"
+#endif
+// ----------------------------
+#include <wx/dialog.h>
+#include <wx/button.h>
+#include <wx/listctrl.h>
+#include <wx/statline.h>
+#include "exception.h"
+
+class RAINMAN2_API RainExceptionDialog : public wxDialog
+{
+public:
+  RainExceptionDialog(wxWindow *parent, RainException *pException);
+
+  void OnOK(wxCommandEvent& e);
+  void OnDetails(wxCommandEvent& e);
+  void OnSave(wxCommandEvent& e);
+  void OnListSelect(wxListEvent& e);
+
+private:
+  void _addExtraControls();
+
+  wxArrayString m_aMessages;
+  wxArrayString m_aFiles;
+  wxArrayLong   m_aLines;
+
+  wxButton *m_pDetailsBtn;
+  bool      m_bShowingDetails;
+
+  wxListCtrl   *m_pDetailList;
+  wxStaticLine *m_pStaticLine;
+  wxButton     *m_pSaveBtn;
+
+  DECLARE_EVENT_TABLE()
+};
