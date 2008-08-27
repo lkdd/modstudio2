@@ -55,6 +55,14 @@ END
 IDB_DONATE              BITMAP                  "E:\\CPP\\2K5\\ModStudio2\\RGD2Lua\\donate.bmp"
 IDB_TREEICONS           BITMAP                  "E:\\CPP\\2K5\\ModStudio2\\RGD2Lua\\treeicons.bmp"
 IDB_ATTRIBICONS         BITMAP                  "AttribIcons.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDP_SAVEBIN             PNG                     "save_binary.png"
+IDP_SAVELUA             PNG                     "save_lua.png"
 #endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 

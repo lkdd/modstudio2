@@ -208,7 +208,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\RGD2Lua\utility.cpp"
+				RelativePath=".\utility.cpp"
 				>
 			</File>
 		</Filter>
@@ -246,7 +246,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\RGD2Lua\utility.h"
+				RelativePath=".\utility.h"
 				>
 			</File>
 		</Filter>
@@ -265,6 +265,18 @@
 			</File>
 			<File
 				RelativePath=".\LuaEdit.rc"
+				>
+			</File>
+			<File
+				RelativePath="..\rgd2lua\png1.png"
+				>
+			</File>
+			<File
+				RelativePath=".\save_binary.png"
+				>
+			</File>
+			<File
+				RelativePath=".\save_lua.png"
 				>
 			</File>
 			<File

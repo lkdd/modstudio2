@@ -68,10 +68,12 @@ public:
   void setSource(IDirectory* pRootDirectory, IFileStore *pDirectoryStore) throw(...);
 
 protected:
+  void _initToolbar();
   void _initTextControl();
   void _populateInheritanceTree();
   void _populatePropertyGrid(LuaAttribTreeData *pData);
   void _doLoadLua(IFile *pFile, RainString sPath);
+  wxImage _loadPng(wxString sName) throw(...);
   wxString _getValueName(IAttributeValue* pValue);
   wxPGProperty* _getValueEditor(IAttributeValue* pValue, wxString sName = L"", wxString sNameId = L"");
 
