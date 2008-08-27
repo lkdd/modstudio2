@@ -25,16 +25,34 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 #include "attributes.h"
 
+//! Temporary declaration of a binary attribute file table
+/*!
+  Required for a BinaryAttribDataTypeCode specialisation. Will be properly defined
+  once binary attrib is added.
+*/
 struct BinaryAttribTable;
 
+//! Semantic method for linking types and their equivalent codes in binary attrib files
+/*!
+  All types which can be found in binary attrib files have a code associated with them,
+  which usually precedes the actual value. Having these codes done in this form allows
+  for things like BinaryAttribDataTypeCode<char*>::code to be placed into source files,
+  rather than the meaningless `3`.
+*/
 template <class T> struct BinaryAttribDataTypeCode {};
-template <> struct BinaryAttribDataTypeCode<float> {static const long code = 0;};
-template <> struct BinaryAttribDataTypeCode<long> {static const long code = 1;};
-template <> struct BinaryAttribDataTypeCode<bool> {static const long code = 2;};
-template <> struct BinaryAttribDataTypeCode<char*> {static const long code = 3;};
-template <> struct BinaryAttribDataTypeCode<wchar_t*> {static const long code = 4;};
+template <> struct BinaryAttribDataTypeCode<float>             {static const long code =   0;};
+template <> struct BinaryAttribDataTypeCode<long>              {static const long code =   1;};
+template <> struct BinaryAttribDataTypeCode<bool>              {static const long code =   2;};
+template <> struct BinaryAttribDataTypeCode<char*>             {static const long code =   3;};
+template <> struct BinaryAttribDataTypeCode<wchar_t*>          {static const long code =   4;};
 template <> struct BinaryAttribDataTypeCode<BinaryAttribTable> {static const long code = 100;};
 
+//! Semantic method for converting between boolean values and their encoded form in binary attrib files
+/*!
+  true and false are represented by a single byte 1 and 0 respectively. Having this
+  information in the form below allows things like BinaryAttribBooleanEncoding<true>::value
+  to be placed into source files, rather than the ambiguous `1`.
+*/
 template <bool b> struct BinaryAttribBooleanEncoding {};
-template <> struct BinaryAttribBooleanEncoding<true> {static const unsigned char value = 1;};
+template <> struct BinaryAttribBooleanEncoding<true>  {static const unsigned char value = 1;};
 template <> struct BinaryAttribBooleanEncoding<false> {static const unsigned char value = 0;};

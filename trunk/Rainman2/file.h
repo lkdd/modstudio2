@@ -28,48 +28,136 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <vector>
 #include <iterator>
 
+//! Type used when specifying the offset in file seek / tell operations
 typedef long seek_offset_t;
+
+//! Values passed to IFIle::seek to specify where to seek from
+/*!
+  These values map to their C standard library equivalents for ease of convertion
+*/
 enum seek_relative_t
 {
-  SR_Start = SEEK_SET,
-  SR_Current = SEEK_CUR,
-  SR_End = SEEK_END,
+  SR_Start   = SEEK_SET, //!< Seek relative to the start of the file
+  SR_Current = SEEK_CUR, //!< Seek relative to the current position in the file
+  SR_End     = SEEK_END, //!< Seek relative to the end of the file
 };
 
+//! Different ways of opening a file
 enum eFileOpenMode
 {
-  FM_Read,
-  FM_Write,
+  FM_Read,  //!< Open a file in read-only binary mode
+  FM_Write, //!< Open a file in read & write binary mode
 };
 
+//! A generic interface for files and other file-like things
+/*!
+  RainOpenFile() can be used to open a traditional file and obtain an IFile pointer
+*/
 class RAINMAN2_API IFile
 {
 public:
   virtual ~IFile() throw(); //!< virtual destructor
 
+  //! Read bytes from the file
+  /*!
+    Reads a number of items from a file and copies them to a user-supplied buffer.
+    If it cannot read all of the items, then an exception will be thrown, and the file
+    position may or may not have been incremented.
+    \param pDestination Buffer at least iItemSize*iItemCount bytes big to copy the
+           read bytes into.
+    \param iItemSize Size, in bytes, of one item
+    \param iItemCount Number of items to read from the file
+    \sa readNoThrow() readOne() readArray()
+  */
   virtual void read(void* pDestination, size_t iItemSize, size_t iItemCount) throw(...) = 0;
+
+  //! Read bytes from the file, without throwing an exception
+  /*!
+    Reads a number of items from a file and copies them to a user-supplied buffer.
+    If it cannot read all of the items, then it will read as many as it can, incrementing
+    the file position by that number of items.
+    \param pDestination Buffer at least iItemSize*iItemCount bytes big to copy the
+           read bytes into.
+    \param iItemSize Size, in bytes, of one item
+    \param iItemCount Number of items to read from the file
+    \return The number of items read
+    \sa read() readOneNoThrow() readArrayNoThrow()
+  */
   virtual size_t readNoThrow(void* pDestination, size_t iItemSize, size_t iItemCount) throw() = 0;
 
+  //! Read a single item from the file
+  /*!
+    Reads one item of a user-specified type.
+    If the item cannot be read, then an exception will be thrown and the file position
+    incremented by an unspecified amount.
+    \param T The type of item to read (usually determined automatically by the compiler)
+    \param oDestination Variable to store the read item in
+    \sa read() readArray() readOneNoThrow()
+  */
   template <class T>
-  void readOne(T& oDestination) throw(...) { read(&oDestination, sizeof(T), 1); }
+  void readOne(T& oDestination) throw(...)
+  { read(&oDestination, sizeof(T), 1); }
+
+  //! Read a single item from the file, without throwing an exception
+  /*!
+    Reads one item of a user-specified type.
+    If the item cannot be read, then 0 is returned and the file position is unchanged.
+    \param T The type of item to read (usually determined automatically by the compiler)
+    \param oDestination Variable to store the read item in
+    \return The number of items read (0 or 1)
+    \sa readNoThrow() readOne() readArrayNoThrow()
+  */
   template <class T>
-  size_t readOneNoThrow(T& oDestination) throw() { return readNoThrow(&oDestination, sizeof(T), 1); }
+  size_t readOneNoThrow(T& oDestination) throw()
+  { return readNoThrow(&oDestination, sizeof(T), 1); }
+
+  //! Read an array of items from the file
+  /*!
+    Reads a specified number of iterms of a user-specified type.
+    If the requested number of items cannot be read, then an exception will be thrown
+    and the file position incremented by an unspecified amount.
+    \param T The type of item to read (usually determined automatically by the compiler)
+    \param pDestination Pointer to an array of at-lest size iCount
+    \param iCount Number of items to read
+    \sa read() readOne() readOneNoThrow()
+  */
   template <class T>
-  void readArray(T* pDestination, size_t iCount) throw(...) { read(pDestination, sizeof(T), iCount); }
+  void readArray(T* pDestination, size_t iCount) throw(...)
+  { read(pDestination, sizeof(T), iCount); }
+
+  //! Read an array of items from the file, without throwing an exception
+  /*!
+    Reads a specified number of iterms of a user-specified type.
+    If the requested number of items cannot be read, then it will read as many
+    as it can, incrementing the file position by that number of items.
+    \param T The type of item to read (usually determined automatically by the compiler)
+    \param pDestination Pointer to an array of at-lest size iCount
+    \param iCount Number of items to read
+    \return The number of items read (which may be less than the requested number)
+    \sa readNoThrow() readOneNoThrow() readArray()
+  */
   template <class T>
-  size_t readArrayNoThrow(T* pDestination, size_t iCount) throw() { return readNoThrow(pDestination, sizeof(T), iCount); }
+  size_t readArrayNoThrow(T* pDestination, size_t iCount) throw()
+  { return readNoThrow(pDestination, sizeof(T), iCount); }
 
   virtual void write(const void* pSource, size_t iItemSize, size_t iItemCount) throw(...) = 0;
   virtual size_t writeNoThrow(const void* pSource, size_t iItemSize, size_t iItemCount) throw() = 0;
 
   template <class T>
-  void writeOne(const T& oSource) throw(...) { write(&oSource, sizeof(T), 1); }
+  void writeOne(const T& oSource) throw(...)
+  { write(&oSource, sizeof(T), 1); }
+
   template <class T>
-  size_t writeOneThrow(const T& oSource) throw() { return writeNoThrow(&oSource, sizeof(T), 1); }
+  size_t writeOneThrow(const T& oSource) throw()
+  { return writeNoThrow(&oSource, sizeof(T), 1); }
+
   template <class T>
-  void writeArray(const T* pSource, size_t iCount) throw(...) { write(pSource, sizeof(T), iCount); }
+  void writeArray(const T* pSource, size_t iCount) throw(...)
+  { write(pSource, sizeof(T), iCount); }
+
   template <class T>
-  size_t writeArrayNoThrow(const T* pSource, size_t iCount) throw() { return writeNoThrow(pSource, sizeof(T), iCount); }
+  size_t writeArrayNoThrow(const T* pSource, size_t iCount) throw()
+  { return writeNoThrow(pSource, sizeof(T), iCount); }
 
   virtual void seek(seek_offset_t iOffset, seek_relative_t eRelativeTo) throw(...) = 0;
   virtual bool seekNoThrow(seek_offset_t iOffset, seek_relative_t eRelativeTo) throw() = 0;
