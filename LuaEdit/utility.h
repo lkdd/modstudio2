@@ -43,7 +43,3 @@ extern "C" {
 
 void luaX_pushrstring(lua_State *L, const RainString& s);
 void luaX_pushwstring(lua_State *L, const wchar_t* s);
-void ShowExceptionMessageBox(RainException* pE, bool bDeleteE = true);
-
-#define EXCEPTION_MESSAGE_BOX(message, e) ShowExceptionMessageBox(new RainException(__WFILE__, __LINE__, message, e));
-#define CATCH_MESSAGE_BOX(message, cleanup) catch (RainException *e) { EXCEPTION_MESSAGE_BOX(message, e); cleanup; }

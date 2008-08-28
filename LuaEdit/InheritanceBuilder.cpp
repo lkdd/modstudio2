@@ -161,17 +161,6 @@ void InheritanceBuilder::_recurse(IDirectory* pDirectory, RainString sPath) thro
     delete pProgress;
 }
 
-static const char* LuaIFileReader(lua_State *L, InheritanceBuilder::read_info_t* dt, size_t *size)
-{
-  if(dt->pFile)
-  {
-    *size = dt->pFile->readNoThrow(dt->cBuffer, 1, InheritanceBuilder::read_info_t::buffer_size);
-    return dt->cBuffer;
-  }
-  *size = 0;
-  return 0;
-}
-
 void InheritanceBuilder::_doFile(IFile* pFile, RainString sPath) throw(...)
 {
   _item_t* pItem = 0;
@@ -191,8 +180,7 @@ void InheritanceBuilder::_doFile(IFile* pFile, RainString sPath) throw(...)
     pItem->bExists = true;
   }
 
-  m_oReadInfo.pFile = pFile;
-  int iErr = lua_load(L, reinterpret_cast<lua_Reader>(LuaIFileReader), reinterpret_cast<void*>(&m_oReadInfo), "lua file");
+  int iErr = pFile->lua_load(L, "lua file");
   if(iErr)
     THROW_SIMPLE_2(L"Cannot load lua file \'%s\': %S", sPath.getCharacters(), lua_tostring(L, -1));
 

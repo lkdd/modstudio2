@@ -33,6 +33,12 @@ bool LuaEditApp::OnInit()
 	wxSystemOptions::SetOption(wxT("msw.remap"), 0);
   wxInitAllImageHandlers();
 
+  try
+  {
+    RgdDictionary::checkStaticHashes();
+  }
+  CATCH_MESSAGE_BOX(L"RGD dictionary code needs updating", {});
+
   frmLoadProject *pForm = new frmLoadProject();
   pForm->Show(TRUE);
   SetTopWindow(pForm);

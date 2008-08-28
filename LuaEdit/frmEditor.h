@@ -38,8 +38,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 // ----------------------------
 #include <wx/aui/aui.h>
 #include <wx/stc/stc.h>
+#pragma warning(push)
+#pragma warning(disable: 4251)
 #include <wx/propgrid/propgrid.h>
 #include <wx/propgrid/manager.h>
+#pragma warning(pop)
 #include <wx/treectrl.h>
 #include <Rainman2.h>
 
@@ -57,6 +60,8 @@ public:
     TREE_ATTRIB,
     LST_RECENT,
     TXT_CODE,
+    TB_SAVELUA,
+    TB_SAVEBIN,
   };
 
   void onListItemActivate(wxCommandEvent &e);
@@ -65,6 +70,8 @@ public:
   void onAttribTreeItemExpanding(wxTreeEvent &e);
   void onStyleNeeded(wxStyledTextEvent &e);
   void onResize(wxSizeEvent& e);
+  void onSaveLua(wxCommandEvent &e);
+  void onSaveBinary(wxCommandEvent &e);
   void setSource(IDirectory* pRootDirectory, IFileStore *pDirectoryStore) throw(...);
 
 protected:

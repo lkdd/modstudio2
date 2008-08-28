@@ -41,6 +41,8 @@ BEGIN_EVENT_TABLE(frmLuaEditor, wxFrame)
   EVT_TREE_SEL_CHANGED(TREE_ATTRIB, frmLuaEditor::onAttribTreeItemActivate)
   EVT_TREE_ITEM_EXPANDING(TREE_ATTRIB, frmLuaEditor::onAttribTreeItemExpanding)
   EVT_STC_STYLENEEDED(TXT_CODE, frmLuaEditor::onStyleNeeded)
+  EVT_TOOL(TB_SAVELUA, frmLuaEditor::onSaveLua)
+  EVT_TOOL(TB_SAVEBIN, frmLuaEditor::onSaveBinary)
 END_EVENT_TABLE()
 
 class RecentLuaListData : public wxClientData
@@ -59,7 +61,7 @@ public:
       pTable = pValue->getValueTable();
     if(pTable)
     {
-      unsigned long iRefKey = pTable->findChildIndex(0x49D60FAE);
+      unsigned long iRefKey = pTable->findChildIndex(RgdDictionary::_REF);
       if(iRefKey != IAttributeTable::NO_INDEX)
       {
         pReference = pTable->getChild(iRefKey);
@@ -332,6 +334,40 @@ wxImage frmLuaEditor::_loadPng(wxString sName) throw(...)
   return oImg;
 }
 
+void frmLuaEditor::onSaveLua(wxCommandEvent &e)
+{
+  try
+  {
+    // TODO: Remove .test once happy with saving
+    std::auto_ptr<IFile> pFile(m_pDirectoryStore->openFile(m_pRootDirectory->getPath() + m_pAttributeFile->getName() + L".test", FM_Write));
+    m_pAttributeFile->saveToTextFile(&*pFile);
+  }
+  CATCH_MESSAGE_BOX(L"Cannot save file", return);
+
+  ::wxMessageBox(L"File saved", L"Save Lua", wxOK | wxICON_INFORMATION, this);
+}
+
+void frmLuaEditor::onSaveBinary(wxCommandEvent &e)
+{
+  if(m_pAttributeFile->getName().afterLast('.') == L"nil")
+  {
+    if(wxMessageBox(L".nil files are not normally saved as binary files. Continue anyway?", L"Save Binary", wxOK | wxCANCEL, this) == wxCANCEL)
+    {
+      return;
+    }
+  }
+
+  std::auto_ptr<IFile> pFile(0);
+  try
+  {
+    // TODO: Change this to proper binary file output location
+    pFile.reset(m_pDirectoryStore->openFile(m_pRootDirectory->getPath() + m_pAttributeFile->getName().beforeLast('.') + L".rgd", FM_Write));
+  }
+  CATCH_MESSAGE_BOX(L"Cannot open binary file for writing", return);
+
+  ::wxMessageBox(L"TODO", L"Save Binary");
+}
+
 void frmLuaEditor::_initToolbar()
 {
   wxToolBar *pToolbar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_FLAT | wxTB_NODIVIDER);
@@ -339,8 +375,8 @@ void frmLuaEditor::_initToolbar()
 
   try
   {
-    pToolbar->AddTool('LUA', wxT("Save Lua"), wxBitmap(_loadPng(wxT("IDP_SAVELUA"))), wxT("Save the current file as Lua (editing format)") );
-    pToolbar->AddTool('BIN', wxT("Save Binary"), wxBitmap(_loadPng(wxT("IDP_SAVEBIN"))), wxT("Save the current file as RGD (binary game format)") );
+    pToolbar->AddTool(TB_SAVELUA, wxT("Save Lua")   , wxBitmap(_loadPng(wxT("IDP_SAVELUA"))), wxT("Save the current file as Lua (editing format)"    ) );
+    pToolbar->AddTool(TB_SAVEBIN, wxT("Save Binary"), wxBitmap(_loadPng(wxT("IDP_SAVEBIN"))), wxT("Save the current file as RGD (binary game format)") );
   }
   catch(RainException *pE)
   {
@@ -431,7 +467,7 @@ wxPGProperty* frmLuaEditor::_getValueEditor(IAttributeValue* pValue, wxString sN
   case VT_Table: {
     wxPGProperty *pProperty = 0;
     IAttributeTable *pTable = pValue->getValueTable();
-    unsigned long iRefKey = pTable->findChildIndex(0x49D60FAE);
+    unsigned long iRefKey = pTable->findChildIndex(RgdDictionary::_REF);
     if(iRefKey != IAttributeTable::NO_INDEX)
     {
       IAttributeValue *pReference = pTable->getChild(iRefKey);
@@ -473,7 +509,7 @@ void frmLuaEditor::onAttribTreeItemExpanding(wxTreeEvent &e)
     for(unsigned long iIndex = 0; iIndex < pData->pTable->getChildCount(); ++iIndex)
     {
       IAttributeValue *pChild = pData->pTable->getChild(iIndex);
-      if(pChild->getName() == 0x49D60FAE)
+      if(pChild->getName() == RgdDictionary::_REF)
       {
         delete pChild;
         continue;
@@ -485,7 +521,7 @@ void frmLuaEditor::onAttribTreeItemExpanding(wxTreeEvent &e)
       wxTreeItemId oChild = m_pAttribTree->AppendItem(oNode, _getValueName(pChild), static_cast<int>(pChild->getIcon()), -1, new LuaAttribTreeData(pChild, pTable));
       if(pTable && pTable->getChildCount() > 0)
       {
-        if(pTable->getChildCount() != 1 || pTable->findChildIndex(0x49D60FAE) == IAttributeTable::NO_INDEX)
+        if(pTable->getChildCount() != 1 || pTable->findChildIndex(RgdDictionary::_REF) == IAttributeTable::NO_INDEX)
           m_pAttribTree->SetItemHasChildren(oChild);
       }
     }
@@ -510,7 +546,6 @@ void frmLuaEditor::_doLoadLua(IFile *pFile, RainString sPath)
   {
     iBytes = pFile->readArrayNoThrow(sBuffer, buffer_size);
     m_pLuaCode->AddText(wxString(sBuffer, wxConvUTF8, iBytes));
-
   } while(iBytes);
 
   m_pLuaCode->SetSavePoint();
@@ -597,7 +632,7 @@ void frmLuaEditor::_populatePropertyGrid(LuaAttribTreeData *pData)
       for(unsigned long iChild = 0; iChild < pData->pTable->getChildCount(); ++iChild)
       {
         IAttributeValue *pValue = pData->pTable->getChild(iChild);
-        if(pValue->getName() != 0x49D60FAE)
+        if(pValue->getName() != RgdDictionary::_REF)
         {
           m_pLuaProperties->Append(_getValueEditor(pValue, _getValueName(pValue), L""));
         }
