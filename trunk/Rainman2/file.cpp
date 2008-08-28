@@ -29,11 +29,42 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <stdio.h>
 #include <windows.h>
 #include <time.h>
+extern "C" {
+#include <lua.h>
+}
 #pragma warning(disable: 4996)
 
 FileSystemStore g_oRainFSO;
 
 IFile::~IFile() {}
+
+struct IFile_load_load_t
+{
+  IFile_load_load_t(IFile* pFile) : pFile(pFile) {}
+
+  static const int buffer_length = 4096;
+  IFile* pFile;
+  char aBuffer[buffer_length];
+
+  static const char* reader(lua_State *L, void *data, size_t *size)
+  {
+    IFile_load_load_t *pThis = reinterpret_cast<IFile_load_load_t*>(data);
+    if(pThis->pFile)
+    {
+      *size = pThis->pFile->readArrayNoThrow(pThis->aBuffer, buffer_length);
+      return pThis->aBuffer;
+    }
+    *size = 0;
+    return NULL;
+  }
+};
+
+int IFile::lua_load(lua_State *L, const char* sChunkName) throw()
+{
+  IFile_load_load_t oLoadStruct(this);
+  return ::lua_load(L, IFile_load_load_t::reader, reinterpret_cast<void*>(&oLoadStruct), sChunkName);
+}
+
 IDirectory::~IDirectory() {}
 IFileStore::~IFileStore() {}
 

@@ -25,6 +25,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 #include "memfile.h"
 #include "attributes.h"
+#include "buffering_streams.h"
 #include <map>
 
 class LuaAttribCache;
@@ -72,6 +73,12 @@ public:
 
   //! Load data into the GameData and MetaData tables from the given file
   void loadFromFile(IFile *pFile) throw(...);
+
+  //! Save the GameData and MetaData tables to a file in text format
+  void saveToTextFile(IFile *pFile) throw(...);
+
+  //! Save the GameData table to a file in binary (RGD) format
+  void saveToBinaryFile(IFile *pFile) throw(...);
 
   IAttributeValue* getGameData() throw(...);
   IAttributeValue* getMetaData() throw(...);
@@ -132,6 +139,7 @@ protected:
     std::map<unsigned long, _value_t> mapContents;
 
     size_t writeToBinary(IFile* pFile) const;
+    void writeToText(BufferingOutputStream<char>& oOutput, const char* sPrefix, size_t iPrefixLength);
   };
 
   //! Execute a Lua function prototype
@@ -157,6 +165,8 @@ protected:
     \param iK Index of the constant in the function's constant table
   */
   void _loadk(_value_t *pDestination, Proto* pFunction, int iK);
+
+  void _writeInheritLine(BufferingOutputStream<char>& oOutput, _value_t& oTable, bool bIsMetaData);
 
   //! Generate a hash code from a value
   unsigned long _hashvalue(_value_t* pValue);
@@ -193,6 +203,7 @@ protected:
   lua_State *m_L;
   IDirectory *m_pDirectory;
   LuaAttrib::_value_t m_oEmptyTable;
+  LuaAttrib* m_pEmptyFile;
 };
 
 //! Lua hashes of commonly used strings, calculated by the compiler at compile-time

@@ -27,6 +27,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "../api.h"
 #include "../archive.h"
 #include "../attributes.h"
+#include "../buffering_streams.h"
+#include "../binaryattrib.h"
 #include "../exception.h"
 #include "../exception_dialog.h"
 #include "../file.h"

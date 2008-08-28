@@ -25,13 +25,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma once
 #include "attributes.h"
 
-//! Temporary declaration of a binary attribute file table
-/*!
-  Required for a BinaryAttribDataTypeCode specialisation. Will be properly defined
-  once binary attrib is added.
-*/
-struct BinaryAttribTable;
-
 //! Semantic method for linking types and their equivalent codes in binary attrib files
 /*!
   All types which can be found in binary attrib files have a code associated with them,
@@ -40,12 +33,12 @@ struct BinaryAttribTable;
   rather than the meaningless `3`.
 */
 template <class T> struct BinaryAttribDataTypeCode {};
-template <> struct BinaryAttribDataTypeCode<float>             {static const long code =   0;};
-template <> struct BinaryAttribDataTypeCode<long>              {static const long code =   1;};
-template <> struct BinaryAttribDataTypeCode<bool>              {static const long code =   2;};
-template <> struct BinaryAttribDataTypeCode<char*>             {static const long code =   3;};
-template <> struct BinaryAttribDataTypeCode<wchar_t*>          {static const long code =   4;};
-template <> struct BinaryAttribDataTypeCode<BinaryAttribTable> {static const long code = 100;};
+template <> struct BinaryAttribDataTypeCode<float>           {static const long code =   0;};
+template <> struct BinaryAttribDataTypeCode<long>            {static const long code =   1;};
+template <> struct BinaryAttribDataTypeCode<bool>            {static const long code =   2;};
+template <> struct BinaryAttribDataTypeCode<char*>           {static const long code =   3;};
+template <> struct BinaryAttribDataTypeCode<wchar_t*>        {static const long code =   4;};
+template <> struct BinaryAttribDataTypeCode<IAttributeTable> {static const long code = 100;};
 
 //! Semantic method for converting between boolean values and their encoded form in binary attrib files
 /*!

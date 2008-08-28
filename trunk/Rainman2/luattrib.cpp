@@ -33,6 +33,7 @@ extern "C" {
 #include <math.h>
 #include <new>
 #include <algorithm>
+#include <locale>
 #include "hash.h"
 #include "exception.h"
 #include "rgd_dict.h"
@@ -396,10 +397,14 @@ LuaAttribCache::LuaAttribCache()
   m_pDirectory = 0;
   m_oEmptyTable.eType = LuaAttrib::_value_t::T_Table;
   m_oEmptyTable.pValue = new LuaAttrib::_table_t(0);
+  m_pEmptyFile = new LuaAttrib;
+  m_pEmptyFile->setName(L"");
+  m_oEmptyTable.pValue->pSourceFile = m_pEmptyFile;
 }
 
 LuaAttribCache::~LuaAttribCache()
 {
+  delete m_pEmptyFile;
   for(std::map<unsigned long, LuaAttrib*>::iterator itr = m_mapFiles.begin(); itr != m_mapFiles.end(); ++itr)
     delete itr->second;
   if(m_L)
@@ -575,32 +580,164 @@ void LuaAttrib::setBaseFolder(IDirectory *pFolder) throw()
   m_pDirectory = pFolder;
 }
 
-struct read_info_t
+template <class TIn, class TOut>
+static TOut static_cast_tolower(TIn v)
 {
-  IFile *pFile;
-  static const int buffer_size = 4096;
-  char cBuffer[buffer_size];
+  return std::tolower(static_cast<TOut>(v), std::locale::classic());
+}
+
+//! Calculates the length of a string literal at compile-time, rather than leaving it to runtime
+/*!
+  \param s A string literal
+  Returns two values; the literal itself, and the length of the literal, *not* including the
+  NULL terminator (hence the -1).
+*/
+#define LITERAL(s) (s), ((sizeof(s)/sizeof(*(s)))-1)
+
+void LuaAttrib::saveToTextFile(IFile *pFile) throw(...)
+{
+  CHECK_ASSERT(m_oGameData.eType == _value_t::T_Table && m_oMetaData.eType == _value_t::T_Table);
+
+  BufferingOutputStream<char> oOutput(pFile);
+  oOutput.write(LITERAL("----------------------------------------\r\n"));
+  oOutput.write(LITERAL("-- File: \'"));
+  oOutput.writeConverting(m_sName.getCharacters(), m_sName.length(), static_cast_tolower<RainChar, char>);
+  oOutput.write(LITERAL("\'\r\n"));
+  oOutput.write(LITERAL("-- Created by: Corsix\'s LuaEdit\r\n"));
+  oOutput.write(LITERAL("-- Note: Feel free to edit by hand!\r\n"));
+  oOutput.write(LITERAL("-- Partially or fully (c) Relic Entertainment Inc.\r\n\r\n"));
+  _writeInheritLine(oOutput, m_oGameData, false);
+  _writeInheritLine(oOutput, m_oMetaData, true);
+  m_oGameData.pValue->writeToText(oOutput, LITERAL("GameData"));
+  oOutput.write(LITERAL("\r\n"));
+}
+
+void LuaAttrib::_writeInheritLine(BufferingOutputStream<char>& oOutput, LuaAttrib::_value_t& oTable, bool bIsMetaData)
+{
+  if(bIsMetaData)
+    oOutput.write(LITERAL("MetaData = InheritMeta([["));
+  else
+    oOutput.write(LITERAL("GameData = Inherit([["));
+  if(oTable.pValue->pInheritFrom)
+  {
+    RainString &sInheritFrom = oTable.pValue->pInheritFrom->pSourceFile->m_sName;
+    oOutput.writeConverting(sInheritFrom.getCharacters(), sInheritFrom.length(), static_cast_tolower<RainChar, char>);
+  }
+  oOutput.write("]])\r\n\r\n", bIsMetaData ? 7 : 5);
+}
+
+struct HashSortLessThen_t
+{
+  bool operator()(unsigned long a, unsigned long b) const
+  {
+    return HashSortLessThen(a, b);
+  }
 };
 
-static const char* LuaIFileReader(lua_State *L, read_info_t* dt, size_t *size)
+static bool StringHasSpecialChars(const char* s)
 {
-  if(dt->pFile)
+  for(; *s; ++s)
   {
-    *size = dt->pFile->readNoThrow(dt->cBuffer, 1, read_info_t::buffer_size);
-    return dt->cBuffer;
+    if(*s == '\\' || *s == '\r' || *s == '\n' || *s == '\"')
+      return true;
   }
-  *size = 0;
-  return 0;
+  return false;
 }
+
+void LuaAttrib::_table_t::writeToText(BufferingOutputStream<char>& oOutput, const char* sPrefix, size_t iPrefixLength)
+{
+  // Re-order the keys alphabetically, stripping out $REF
+  std::map<unsigned long, _value_t*, HashSortLessThen_t> mapKeys;
+  for(std::map<unsigned long, _value_t>::iterator itr = mapContents.begin(); itr != mapContents.end(); ++itr)
+  {
+    if(itr->first != RgdDictionary::_REF)
+      mapKeys[itr->first] = &itr->second;
+  }
+
+  // Print keys
+  for(std::map<unsigned long, _value_t*, HashSortLessThen_t>::iterator itr = mapKeys.begin(); itr != mapKeys.end(); ++itr)
+  {
+    if(itr->second->eType != _value_t::T_Table || itr->second->pValue->mapContents.count(RgdDictionary::_REF) == 1)
+    {
+      oOutput.write(sPrefix, iPrefixLength);
+      oOutput.write(LITERAL("[\""));
+      oOutput.write(RgdDictionary::getSingleton()->hashToAscii(itr->first));
+      oOutput.write(LITERAL("\"] = "));
+      switch(itr->second->eType)
+      {
+      case _value_t::T_Float: {
+        char sBuffer[64];
+        sprintf(sBuffer, "%.5f", itr->second->fValue);
+        oOutput.write(sBuffer);
+        break; }
+
+      case _value_t::T_String:
+        if(StringHasSpecialChars(itr->second->sValue))
+        {
+          oOutput.write(LITERAL("[["));
+          oOutput.write(itr->second->sValue, itr->second->iLength);
+          oOutput.write(LITERAL("]]"));
+        }
+        else
+        {
+          oOutput.write(LITERAL("\""));
+          oOutput.write(itr->second->sValue, itr->second->iLength);
+          oOutput.write(LITERAL("\""));
+        }
+        break;
+
+      case _value_t::T_Boolean:
+        if(itr->second->bValue)
+          oOutput.write(LITERAL("true"));
+        else
+          oOutput.write(LITERAL("false"));
+        break;
+
+      case _value_t::T_Integer: {
+        char sBuffer[64];
+        sprintf(sBuffer, "%li", itr->second->iValue);
+        break; }
+
+      case _value_t::T_Table: {
+        oOutput.write(LITERAL("Reference([["));
+        RainString sReferenceFrom = itr->second->pValue->pInheritFrom->pSourceFile->m_sName;
+        oOutput.writeConverting(sReferenceFrom.getCharacters(), sReferenceFrom.length(), static_cast_tolower<RainChar, char>);
+        oOutput.write(LITERAL("]])"));
+        break; }
+
+      default:
+        THROW_SIMPLE_1(L"Cannot write data of type %i to text file", static_cast<int>(itr->second->eType));
+      }
+      oOutput.write(LITERAL("\r\n"));
+    }
+    if(itr->second->eType == _value_t::T_Table)
+    {
+      _table_t *pChildTable = itr->second->pValue;
+      if(!pChildTable->bTotallyUnchaged)
+      {
+        const char *sName = RgdDictionary::getSingleton()->hashToAscii(itr->first);
+        size_t iNameLength = strlen(sName);
+        char *sNewPrefix = CHECK_ALLOCATION(new (std::nothrow) char[iPrefixLength + 5 + iNameLength]);
+        sprintf(sNewPrefix, "%s[\"%s\"]", sPrefix, sName);
+        try
+        {
+          pChildTable->writeToText(oOutput, sNewPrefix, iPrefixLength + 4 + iNameLength);
+        }
+        CATCH_THROW_SIMPLE_1(L"Cannot write child table \'%S\'", sName, {delete[] sNewPrefix;});
+        delete[] sNewPrefix;
+      }
+    }
+  }
+}
+
+#undef LITERAL
 
 void LuaAttrib::loadFromFile(IFile *pFile) throw(...)
 {
   m_oGameData.free();
   lua_State *L = getCache()->getLuaState();
-  read_info_t oReadInfo;
-  oReadInfo.pFile = pFile;
   lua_checkstack(L, 1);
-  if(lua_load(L, (lua_Reader)LuaIFileReader, reinterpret_cast<void*>(&oReadInfo), "attrib file") != 0)
+  if(pFile->lua_load(L, "attrib file") != 0)
   {
     THROW_SIMPLE_1(L"Cannot parse attrib file: %S", lua_tostring(L, -1));
   }
@@ -815,7 +952,8 @@ void LuaAttrib::_execute(Proto* pFunction)
       if(pStack[GETARG_A(*I)].eType == _value_t::T_Table)
       {
         _wraptable(pStack + GETARG_A(*I));
-        pStack[GETARG_A(*I)].pValue->mapContents[0x49D60FAE] = *pFilename;
+        pStack[GETARG_A(*I)].pValue->mapContents[RgdDictionary::_REF] = *pFilename;
+        pStack[GETARG_A(*I)].pValue->pSourceFile = this;
       }
       break; }
 
@@ -946,7 +1084,7 @@ size_t LuaAttrib::_table_t::writeToBinary(IFile* pFile) const
       break;
 
     case LuaAttrib::_value_t::T_Table:
-      iDataTypeCode = BinaryAttribDataTypeCode<BinaryAttribTable>::code;
+      iDataTypeCode = BinaryAttribDataTypeCode<IAttributeTable>::code;
       iAlignLength = sizeof(long);
       break;
 

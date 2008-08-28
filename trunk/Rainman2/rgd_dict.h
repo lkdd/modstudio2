@@ -42,6 +42,11 @@ public:
   const RainString* hashToString(unsigned long iHash) throw(...);
   const RainString* hashToStringNoThrow(unsigned long iHash) throw();
 
+  //! Hash of "$REF", an important entry in RGD tables, often treated specially
+  static const unsigned long _REF = 0x49D60FAE;
+
+  static void checkStaticHashes() throw(...);
+
 protected:
   static RgdDictionary* m_pSingleton;
 

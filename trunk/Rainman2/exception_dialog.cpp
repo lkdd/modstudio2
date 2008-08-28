@@ -27,10 +27,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <wx/clipbrd.h>
 
 BEGIN_EVENT_TABLE(RainExceptionDialog, wxDialog)
-  EVT_BUTTON(wxID_OK, RainExceptionDialog::OnOK)
-  EVT_BUTTON(wxID_MORE,   RainExceptionDialog::OnDetails)
-  EVT_BUTTON(wxID_SAVE,   RainExceptionDialog::OnSave)
-  EVT_LIST_ITEM_SELECTED(wxID_ANY, RainExceptionDialog::OnListSelect)
+  EVT_BUTTON(wxID_OK, RainExceptionDialog::onOK)
+  EVT_BUTTON(wxID_MORE, RainExceptionDialog::onDetails)
+  EVT_BUTTON(wxID_SAVE, RainExceptionDialog::onSave)
+  EVT_LIST_ITEM_SELECTED(wxID_ANY, RainExceptionDialog::onListSelect)
 END_EVENT_TABLE()
 
 RainExceptionDialog::RainExceptionDialog(wxWindow *parent, RainException *pException)
@@ -103,17 +103,17 @@ void RainExceptionDialog::_addExtraControls()
 }
 
 
-void RainExceptionDialog::OnListSelect(wxListEvent& e)
+void RainExceptionDialog::onListSelect(wxListEvent& e)
 {
-    m_pDetailList->SetItemState(e.GetIndex(), 0, wxLIST_STATE_SELECTED);
+  m_pDetailList->SetItemState(e.GetIndex(), 0, wxLIST_STATE_SELECTED);
 }
 
-void RainExceptionDialog::OnOK(wxCommandEvent& WXUNUSED(e))
+void RainExceptionDialog::onOK(wxCommandEvent& WXUNUSED(e))
 {
-    EndModal(wxID_OK);
+  EndModal(wxID_OK);
 }
 
-void RainExceptionDialog::OnSave(wxCommandEvent& WXUNUSED(e))
+void RainExceptionDialog::onSave(wxCommandEvent& WXUNUSED(e))
 {
   if(wxTheClipboard->Open())
   {
@@ -135,7 +135,7 @@ void RainExceptionDialog::OnSave(wxCommandEvent& WXUNUSED(e))
   }
 }
 
-void RainExceptionDialog::OnDetails(wxCommandEvent& WXUNUSED(e))
+void RainExceptionDialog::onDetails(wxCommandEvent& WXUNUSED(e))
 {
   wxSizer *sizer = GetSizer();
 
@@ -179,4 +179,12 @@ void RainExceptionDialog::OnDetails(wxCommandEvent& WXUNUSED(e))
 
   SetSizeHints(size.x, size.y, m_maxWidth, m_maxHeight);
   SetSize(size.x, size.y);
+}
+
+void RainExceptionDialog::show(RainException* pE, bool bDeleteException)
+{
+  RainExceptionDialog oDialog(wxGetActiveWindow(), pE);
+  oDialog.ShowModal();
+  if(bDeleteException)
+    delete pE;
 }
