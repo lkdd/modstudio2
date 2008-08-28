@@ -27,14 +27,6 @@ extern "C" {
 #include <lauxlib.h>
 }
 
-void ShowExceptionMessageBox(RainException* pE, bool bDeleteE)
-{
-  RainExceptionDialog oDialog(wxGetActiveWindow(), pE);
-  oDialog.ShowModal();
-  if(bDeleteE)
-    delete pE;
-}
-
 void luaX_pushrstring(lua_State *L, const RainString& s)
 {
   luaL_Buffer b;

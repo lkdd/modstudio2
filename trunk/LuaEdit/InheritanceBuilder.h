@@ -62,13 +62,6 @@ public:
 
   void doBuild() throw(...);
 
-  struct read_info_t
-  {
-    IFile *pFile;
-    static const int buffer_size = 4096;
-    char cBuffer[buffer_size];
-  };
-
 protected:
   void _cleanItems();
   void _recurse(IDirectory* pDirectory, RainString sPath) throw(...);
@@ -79,7 +72,6 @@ protected:
   wxTreeCtrl *m_pTreeDestination;
   LuaShortSharpAlloc *m_pAllocator;
   lua_State *L;
-  read_info_t m_oReadInfo;
   size_t m_iCountNonexistantFiles;
 
   struct _item_t
