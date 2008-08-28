@@ -43,7 +43,7 @@
 				AdditionalOptions="/MP4"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;E:\CPP\lua-5.1.4\src&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\propgrid\include&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include\msvc&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1"
+				PreprocessorDefinitions="WIN32;_DEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1;_SCL_SECURE_NO_WARNINGS"
 				GeneratePreprocessedFile="0"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
@@ -125,11 +125,11 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="&quot;E:\CPP\lua-5.1.4\src&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\propgrid\include&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include\msvc&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1"
+				PreprocessorDefinitions="WIN32;NDEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1;_SCL_SECURE_NO_WARNINGS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="true"
+				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -145,7 +145,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="wxbase28u.lib Lua5.1.lib"
 				AdditionalLibraryDirectories="&quot;E:\CPP\lua-5.1.4\release&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\lib\vc_dll&quot;"
-				OptimizeForWindows98="1"
+				OptimizeForWindows98="0"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
 			/>
@@ -246,6 +246,10 @@
 			</File>
 			<File
 				RelativePath=".\binaryattrib.h"
+				>
+			</File>
+			<File
+				RelativePath=".\buffering_streams.h"
 				>
 			</File>
 			<File

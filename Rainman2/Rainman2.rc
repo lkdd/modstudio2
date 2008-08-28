@@ -69,10 +69,11 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
+            VALUE "Comments", "Get the latest version and the source code from http://code.google.com/p/modstudio2/"
             VALUE "FileDescription", "Common code for manipulating DoW and CoH game files"
             VALUE "FileVersion", "2, 0, 0, 0"
             VALUE "InternalName", "Rainman2"
-            VALUE "LegalCopyright", "Copyright (C) 2008 Corsix"
+            VALUE "LegalCopyright", "Copyright (C) 2008 Peter ""Corsix"" Cawley, licensed under the MIT license"
             VALUE "OriginalFilename", "Rainman2.dll"
             VALUE "ProductName", "Rainman2 Library"
             VALUE "ProductVersion", "2, 0, 0, 0"

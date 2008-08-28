@@ -125,6 +125,16 @@ public:
   void readArray(T* pDestination, size_t iCount) throw(...)
   { read(pDestination, sizeof(T), iCount); }
 
+  //! Load the file as a Lua chunk
+  /*!
+    Reads the remainder of the file (i.e. the whole file if the file pointer is at the
+    start) into a Lua state as a chunk.
+    \param L The Lua state to load into
+    \param sChunkName The name to give the loaded chunk
+    \return Same values as ::lua_load(), with an error or chunk placed on the Lua stack
+  */
+  int lua_load(lua_State *L, const char* sChunkName) throw();
+
   //! Read an array of items from the file, without throwing an exception
   /*!
     Reads a specified number of iterms of a user-specified type.

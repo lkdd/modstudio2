@@ -47,10 +47,12 @@ class RAINMAN2_API RainExceptionDialog : public wxDialog
 public:
   RainExceptionDialog(wxWindow *parent, RainException *pException);
 
-  void OnOK(wxCommandEvent& e);
-  void OnDetails(wxCommandEvent& e);
-  void OnSave(wxCommandEvent& e);
-  void OnListSelect(wxListEvent& e);
+  static void show(RainException* pE, bool bDeleteException = true);
+
+  void onOK(wxCommandEvent& e);
+  void onDetails(wxCommandEvent& e);
+  void onSave(wxCommandEvent& e);
+  void onListSelect(wxListEvent& e);
 
 private:
   void _addExtraControls();
@@ -68,3 +70,6 @@ private:
 
   DECLARE_EVENT_TABLE()
 };
+
+#define EXCEPTION_MESSAGE_BOX(message, e) RainExceptionDialog::show(new RainException(__WFILE__, __LINE__, message, e));
+#define CATCH_MESSAGE_BOX(message, cleanup) catch (RainException *e) { EXCEPTION_MESSAGE_BOX(message, e); cleanup; }

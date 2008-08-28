@@ -46,6 +46,11 @@ RgdDictionary::~RgdDictionary()
     m_pSingleton = 0;
 }
 
+void RgdDictionary::checkStaticHashes() throw(...)
+{
+  CHECK_ASSERT(getSingleton()->asciiToHash("$REF") == _REF);
+}
+
 unsigned long RgdDictionary::asciiToHash(const char* sString) throw()
 {
   return asciiToHash(sString, strlen(sString));
