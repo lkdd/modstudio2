@@ -31,8 +31,10 @@ RgdDictionary* RgdDictionary::m_pSingleton = 0;
 
 RgdDictionary::RgdDictionary()
 {
-  if(!m_pSingleton)
+  if(m_pSingleton == 0)
+  {
     m_pSingleton = this;
+  }
 }
 
 RgdDictionary::~RgdDictionary()
@@ -43,7 +45,9 @@ RgdDictionary::~RgdDictionary()
     delete itr->second.pString;
   }
   if(this == m_pSingleton)
+  {
     m_pSingleton = 0;
+  }
 }
 
 void RgdDictionary::checkStaticHashes() throw(...)
@@ -85,7 +89,9 @@ bool RgdDictionary::isHashKnown(unsigned long iHash) throw()
   return m_mapHashes.count(iHash) == 1;
 }
 
-#define CHECK_HASH(hash) if(!isHashKnown(hash)) THROW_SIMPLE_1(L"Hash not in the dictionary: %lu", (unsigned long)(hash));
+#define CHECK_HASH(hash) \
+  if(!isHashKnown(hash)) \
+    THROW_SIMPLE_1(L"Hash not in the dictionary: %lu", static_cast<unsigned long>(hash));
 
 const char* RgdDictionary::hashToAscii(unsigned long iHash) throw(...)
 {
@@ -105,7 +111,9 @@ const RainString* RgdDictionary::hashToString(unsigned long iHash) throw(...)
   CHECK_HASH(iHash);
   _hash_entry &oEntry = m_mapHashes[iHash];
   if(!oEntry.pString)
+  {
     CHECK_ALLOCATION(oEntry.pString = new NOTHROW RainString(oEntry.sString, oEntry.iLength));
+  }
   return oEntry.pString;
 }
 
@@ -115,7 +123,9 @@ const RainString* RgdDictionary::hashToStringNoThrow(unsigned long iHash) throw(
     return 0;
   _hash_entry &oEntry = m_mapHashes[iHash];
   if(!oEntry.pString)
+  {
     oEntry.pString = new NOTHROW RainString(oEntry.sString, oEntry.iLength);
+  }
   return oEntry.pString;
 }
 

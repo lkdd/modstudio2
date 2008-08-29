@@ -140,6 +140,7 @@ protected:
 
     size_t writeToBinary(IFile* pFile) const;
     void writeToText(BufferingOutputStream<char>& oOutput, const char* sPrefix, size_t iPrefixLength);
+    void writeToTextAsMetaDataTable(BufferingOutputStream<char>& oOutput);
   };
 
   //! Execute a Lua function prototype
@@ -167,6 +168,7 @@ protected:
   void _loadk(_value_t *pDestination, Proto* pFunction, int iK);
 
   void _writeInheritLine(BufferingOutputStream<char>& oOutput, _value_t& oTable, bool bIsMetaData);
+  void _writeMetaData(BufferingOutputStream<char>& oOutput);
 
   //! Generate a hash code from a value
   unsigned long _hashvalue(_value_t* pValue);
