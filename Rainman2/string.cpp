@@ -523,6 +523,10 @@ RainChar RainString::operator[] (size_t iCharacterIndex) const throw(...)
 
 RAINMAN2_API RainString operator+(const RainString& sA, const RainString& sB)
 {
+  if(sA.isEmpty())
+    return sB;
+  if(sB.isEmpty())
+    return sA;
   RainString sNew(sA);
   sNew += sB;
   return sNew;

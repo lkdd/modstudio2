@@ -373,7 +373,7 @@ size_t FileSystemStore::getEntryPointCount() throw()
 const RainString& FileSystemStore::getEntryPointName(size_t iEntryPointIndex) throw(...)
 {
   _ensureGotEntryPoints();
-  CHECK_RANGE((size_t)0, iEntryPointIndex, (size_t)m_vEntryPoints.size());
+  CHECK_RANGE_LTMAX(static_cast<size_t>(0), iEntryPointIndex, m_vEntryPoints.size());
   return m_vEntryPoints[iEntryPointIndex];
 }
 

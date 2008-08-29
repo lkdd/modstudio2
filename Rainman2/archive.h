@@ -36,14 +36,23 @@ public:
   bool initNoThrow(IFile* pSgaFile, bool bTakePointerOwnership = true) throw();
 
   virtual void getCaps(file_store_caps_t& oCaps) const throw();
-  virtual IFile* openFile(const RainString& sPath, eFileOpenMode eMode) throw(...);
-  virtual IFile* openFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw();
-  virtual void deleteFile(const RainString& sPath) throw(...);
-  virtual bool deleteFileNoThrow(const RainString& sPath) throw();
-  virtual size_t getEntryPointCount() throw();
+
+  virtual IFile* openFile         (const RainString& sPath, eFileOpenMode eMode) throw(...);
+  virtual IFile* openFileNoThrow  (const RainString& sPath, eFileOpenMode eMode) throw();
+  virtual bool   doesFileExist    (const RainString& sPath) throw();
+  virtual void   deleteFile       (const RainString& sPath) throw(...);
+  virtual bool   deleteFileNoThrow(const RainString& sPath) throw();
+
+  virtual size_t            getEntryPointCount() throw();
   virtual const RainString& getEntryPointName(size_t iIndex) throw(...);
-  virtual IDirectory* openDirectory(const RainString& sPath) throw(...);
-  virtual IDirectory* openDirectoryNoThrow(const RainString& sPath) throw();
+
+  virtual IDirectory* openDirectory         (const RainString& sPath) throw(...);
+  virtual IDirectory* openDirectoryNoThrow  (const RainString& sPath) throw();
+  virtual bool        doesDirectoryExist    (const RainString& sPath) throw();
+  virtual void        createDirectory       (const RainString& sPath) throw(...);
+  virtual void        createDirectoryNoThrow(const RainString& sPath) throw();
+  virtual void        deleteDirectory       (const RainString& sPath) throw(...);
+  virtual void        deleteDirectoryNoThrow(const RainString& sPath) throw();
 
 protected:
   friend class ArchiveDirectoryAdapter;

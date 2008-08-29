@@ -342,10 +342,12 @@ struct RAINMAN2_API file_store_caps_t
   */
   file_store_caps_t& operator= (bool bValue) throw();
 
-  bool bCanReadFiles : 1;       //!< true if files can be opened for reading
-  bool bCanWriteFiles : 1;      //!< true if files can be opened for writing
-  bool bCanDeleteFiles : 1;     //!< true if files can be deleted
-  bool bCanOpenDirectories : 1; //!< true if directories can be opened
+  bool bCanReadFiles : 1;         //!< true if files can be opened for reading
+  bool bCanWriteFiles : 1;        //!< true if files can be opened for writing
+  bool bCanDeleteFiles : 1;       //!< true if files can be deleted
+  bool bCanOpenDirectories : 1;   //!< true if directories can be opened
+  bool bCanCreateDirectories : 1; //!< true if directories can be created
+  bool bCanDeleteDirectories : 1; //!< true if directories can be deleted
 };
 
 //! Interface for entities which contain files
@@ -384,6 +386,8 @@ public:
   	  case of an error, a null pointer
   */
   virtual IFile* openFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw() = 0;
+
+  virtual bool doesFileExist(const RainString& sPath) throw() = 0;
   
   //! Delete a file from the store
   /*!
@@ -430,6 +434,13 @@ public:
   	  in the case of an error, a null pointer
   */
   virtual IDirectory* openDirectoryNoThrow(const RainString& sPath) throw() = 0;
+
+  virtual bool doesDirectoryExist(const RainString& sPath) throw() = 0;
+
+  virtual void createDirectory(const RainString& sPath) throw(...) = 0;
+  virtual void createDirectoryNoThrow(const RainString& sPath) throw() = 0;
+  virtual void deleteDirectory(const RainString& sPath) throw(...) = 0;
+  virtual void deleteDirectoryNoThrow(const RainString& sPath) throw() = 0;
 };
 
 //! Implementation of the IFileStore interface for the standard physical filesystem
@@ -446,14 +457,23 @@ public:
   ~FileSystemStore() throw();
 
   virtual void getCaps(file_store_caps_t& oCaps) const throw();
-  virtual IFile* openFile(const RainString& sPath, eFileOpenMode eMode) throw(...);
-  virtual IFile* openFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw();
-  virtual void deleteFile(const RainString& sPath) throw(...);
-  virtual bool deleteFileNoThrow(const RainString& sPath) throw();
-  virtual size_t getEntryPointCount() throw();
+
+  virtual IFile* openFile         (const RainString& sPath, eFileOpenMode eMode) throw(...);
+  virtual IFile* openFileNoThrow  (const RainString& sPath, eFileOpenMode eMode) throw();
+  virtual bool   doesFileExist    (const RainString& sPath) throw();
+  virtual void   deleteFile       (const RainString& sPath) throw(...);
+  virtual bool   deleteFileNoThrow(const RainString& sPath) throw();
+
+  virtual size_t            getEntryPointCount() throw();
   virtual const RainString& getEntryPointName(size_t iIndex) throw(...);
-  virtual IDirectory* openDirectory(const RainString& sPath) throw(...);
-  virtual IDirectory* openDirectoryNoThrow(const RainString& sPath) throw();
+
+  virtual IDirectory* openDirectory         (const RainString& sPath) throw(...);
+  virtual IDirectory* openDirectoryNoThrow  (const RainString& sPath) throw();
+  virtual bool        doesDirectoryExist    (const RainString& sPath) throw();
+  virtual void        createDirectory       (const RainString& sPath) throw(...);
+  virtual void        createDirectoryNoThrow(const RainString& sPath) throw();
+  virtual void        deleteDirectory       (const RainString& sPath) throw(...);
+  virtual void        deleteDirectoryNoThrow(const RainString& sPath) throw();
 
 public:
   void _ensureGotEntryPoints() throw();

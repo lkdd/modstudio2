@@ -34,6 +34,7 @@ extern "C" {
 #include <new>
 #include <algorithm>
 #include <locale>
+#include <limits>
 #include "hash.h"
 #include "exception.h"
 #include "rgd_dict.h"
@@ -369,22 +370,43 @@ unsigned long LuaAttribTableAdapter::findChildIndex(unsigned long iName) throw()
   return NO_INDEX;
 }
 
+//! Alphabetical comparison function for RGD hashes
+/*!
+  Sorting with this function as the predicate causes hashes with
+  no known text equivalent to be placed first, in ascending order,
+  followed by hashes with known text equivalents, in alphabetical
+  order.
+*/
 static bool HashSortLessThen(unsigned long i1, unsigned long i2)
 {
   RgdDictionary *pDictionary = RgdDictionary::getSingleton();
   const char* s1 = pDictionary->hashToAsciiNoThrow(i1);
   const char* s2 = pDictionary->hashToAsciiNoThrow(i2);
+
+  // Two strings => lexicographical less-than
   if(s1 && s2)
     return stricmp(s1, s2) < 0;
   else
   {
+    // One hash and one string => hash comes first
     if(s1)
       return false;
     else if(s2)
       return true;
+
+    // Two hashes => smaller one first
     return i1 < i2;
   }
 }
+
+//! HashSortLessThen as a function object
+struct HashSortLessThen_t
+{
+  bool operator()(unsigned long a, unsigned long b) const
+  {
+    return HashSortLessThen(a, b);
+  }
+};
 
 void LuaAttribTableAdapter::_sortValues()
 {
@@ -598,18 +620,23 @@ void LuaAttrib::saveToTextFile(IFile *pFile) throw(...)
 {
   CHECK_ASSERT(m_oGameData.eType == _value_t::T_Table && m_oMetaData.eType == _value_t::T_Table);
 
-  BufferingOutputStream<char> oOutput(pFile);
-  oOutput.write(LITERAL("----------------------------------------\r\n"));
-  oOutput.write(LITERAL("-- File: \'"));
-  oOutput.writeConverting(m_sName.getCharacters(), m_sName.length(), static_cast_tolower<RainChar, char>);
-  oOutput.write(LITERAL("\'\r\n"));
-  oOutput.write(LITERAL("-- Created by: Corsix\'s LuaEdit\r\n"));
-  oOutput.write(LITERAL("-- Note: Feel free to edit by hand!\r\n"));
-  oOutput.write(LITERAL("-- Partially or fully (c) Relic Entertainment Inc.\r\n\r\n"));
-  _writeInheritLine(oOutput, m_oGameData, false);
-  _writeInheritLine(oOutput, m_oMetaData, true);
-  m_oGameData.pValue->writeToText(oOutput, LITERAL("GameData"));
-  oOutput.write(LITERAL("\r\n"));
+  try
+  {
+    BufferingOutputStream<char> oOutput(pFile);
+    oOutput.write(LITERAL("----------------------------------------\r\n"));
+    oOutput.write(LITERAL("-- File: \'"));
+    oOutput.writeConverting(m_sName.getCharacters(), m_sName.length(), static_cast_tolower<RainChar, char>);
+    oOutput.write(LITERAL("\'\r\n"));
+    oOutput.write(LITERAL("-- Created by: Corsix\'s LuaEdit\r\n"));
+    oOutput.write(LITERAL("-- Note: Feel free to edit by hand!\r\n"));
+    oOutput.write(LITERAL("-- Partially or fully (c) Relic Entertainment Inc.\r\n\r\n"));
+    _writeInheritLine(oOutput, m_oGameData, false);
+    _writeInheritLine(oOutput, m_oMetaData, true);
+    m_oGameData.pValue->writeToText(oOutput, LITERAL("GameData"));
+    oOutput.write(LITERAL("\r\n"));
+    _writeMetaData(oOutput);
+  }
+  CATCH_THROW_SIMPLE(L"Error encountered while writing Lua data", {});
 }
 
 void LuaAttrib::_writeInheritLine(BufferingOutputStream<char>& oOutput, LuaAttrib::_value_t& oTable, bool bIsMetaData)
@@ -626,13 +653,31 @@ void LuaAttrib::_writeInheritLine(BufferingOutputStream<char>& oOutput, LuaAttri
   oOutput.write("]])\r\n\r\n", bIsMetaData ? 7 : 5);
 }
 
-struct HashSortLessThen_t
+void LuaAttrib::_writeMetaData(BufferingOutputStream<char>& oOutput)
 {
-  bool operator()(unsigned long a, unsigned long b) const
+  // Re-order the keys alphabetically, stripping out $REF
+  std::map<unsigned long, _value_t*, HashSortLessThen_t> mapKeys;
+  for(std::map<unsigned long, _value_t>::iterator itr = m_oMetaData.pValue->mapContents.begin(); itr != m_oMetaData.pValue->mapContents.end(); ++itr)
   {
-    return HashSortLessThen(a, b);
+    if(itr->first != RgdDictionary::_REF)
+      mapKeys[itr->first] = &itr->second;
   }
-};
+
+  // Print keys
+  for(std::map<unsigned long, _value_t*, HashSortLessThen_t>::iterator itr = mapKeys.begin(); itr != mapKeys.end(); ++itr)
+  {
+    if(itr->first == RgdDictionary::_REF)
+      continue;
+
+    oOutput.write(LITERAL("MetaData[\""));
+    oOutput.write(RgdDictionary::getSingleton()->hashToAscii(itr->first));
+    oOutput.write(LITERAL("\"] = "));
+
+    CHECK_ASSERT(itr->second->eType == _value_t::T_Table && "MetaData children should all be tables");
+
+    itr->second->pValue->writeToTextAsMetaDataTable(oOutput);
+  }
+}
 
 static bool StringHasSpecialChars(const char* s)
 {
@@ -642,6 +687,59 @@ static bool StringHasSpecialChars(const char* s)
       return true;
   }
   return false;
+}
+
+void LuaAttrib::_table_t::writeToTextAsMetaDataTable(BufferingOutputStream<char>& oOutput)
+{
+  oOutput.write(LITERAL("{"));
+  for(std::map<unsigned long, _value_t>::iterator itr = mapContents.begin(); itr != mapContents.end(); ++itr)
+  {
+    oOutput.write(RgdDictionary::getSingleton()->hashToAscii(itr->first));
+    oOutput.write(LITERAL(" = "));
+    switch(itr->second.eType)
+    {
+    case LuaAttrib::_value_t::T_Float: {
+      float fValue = itr->second.fValue;
+      char sBuffer[64];
+      if(fValue == floor(fValue) && fValue <= static_cast<float>(std::numeric_limits<long>::max()) && fValue >= static_cast<float>(std::numeric_limits<long>::min()))
+      {
+        sprintf(sBuffer, "%li", static_cast<long>(fValue));
+      }
+      else
+      {
+        sprintf(sBuffer, "%.3f", fValue);
+      }
+      oOutput.write(sBuffer);
+      break; }
+
+    case LuaAttrib::_value_t::T_String:
+      oOutput.write(LITERAL("[["));
+      oOutput.write(itr->second.sValue, itr->second.iLength);
+      oOutput.write(LITERAL("]]"));
+      break;
+
+    case LuaAttrib::_value_t::T_Boolean:
+      if(itr->second.bValue)
+        oOutput.write(LITERAL("true"));
+      else
+        oOutput.write(LITERAL("false"));
+      break;
+
+    case LuaAttrib::_value_t::T_Integer: {
+      char sBuffer[64];
+      sprintf(sBuffer, "%li", itr->second.iValue);
+      break; }
+
+    case LuaAttrib::_value_t::T_Table:
+      itr->second.pValue->writeToTextAsMetaDataTable(oOutput);
+      break;
+
+    default:
+      THROW_SIMPLE_1(L"Cannot write meta data of type %i to text file", static_cast<int>(itr->second.eType));
+    }
+    oOutput.write(LITERAL(", "));
+  }
+  oOutput.write(LITERAL("}\r\n"));
 }
 
 void LuaAttrib::_table_t::writeToText(BufferingOutputStream<char>& oOutput, const char* sPrefix, size_t iPrefixLength)
