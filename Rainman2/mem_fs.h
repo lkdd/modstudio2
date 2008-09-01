@@ -48,9 +48,9 @@ public:
   virtual IDirectory* openDirectoryNoThrow  (const RainString& sPath) throw();
   virtual bool        doesDirectoryExist    (const RainString& sPath) throw();
   virtual void        createDirectory       (const RainString& sPath) throw(...);
-  virtual void        createDirectoryNoThrow(const RainString& sPath) throw();
+  virtual bool        createDirectoryNoThrow(const RainString& sPath) throw();
   virtual void        deleteDirectory       (const RainString& sPath) throw(...);
-  virtual void        deleteDirectoryNoThrow(const RainString& sPath) throw();
+  virtual bool        deleteDirectoryNoThrow(const RainString& sPath) throw();
 
 protected:
   friend class MemFileWriteAdaptor;
@@ -82,6 +82,7 @@ protected:
     RainString m_sName;
     std::vector<directory_t*> m_vSubdirectories;
     std::vector<file_t*> m_vFiles;
+    directory_t* m_pParent;
   };
   friend bool operator == (directory_t* p, const RainString& s);
 

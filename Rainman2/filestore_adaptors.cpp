@@ -118,6 +118,8 @@ void ReadOnlyFileStoreAdaptor::getCaps(file_store_caps_t& oCaps) const throw()
   m_pFileStore->getCaps(oCaps);
   oCaps.bCanWriteFiles = false;
   oCaps.bCanDeleteFiles = false;
+  oCaps.bCanCreateDirectories = false;
+  oCaps.bCanDeleteDirectories = false;
 }
 
 IFile* ReadOnlyFileStoreAdaptor::openFile(const RainString& sPath, eFileOpenMode eMode) throw(...)
@@ -134,6 +136,11 @@ IFile* ReadOnlyFileStoreAdaptor::openFileNoThrow(const RainString& sPath, eFileO
     return 0;
   else
     return m_pFileStore->openFileNoThrow(sPath, eMode);
+}
+
+bool ReadOnlyFileStoreAdaptor::doesFileExist(const RainString& sPath) throw()
+{
+  return m_pFileStore->doesFileExist(sPath);
 }
 
 void ReadOnlyFileStoreAdaptor::deleteFile(const RainString& sPath) throw(...)
@@ -178,4 +185,29 @@ IDirectory* ReadOnlyFileStoreAdaptor::openDirectoryNoThrow(const RainString& sPa
     return 0;
   }
   return pWrapped;
+}
+
+bool ReadOnlyFileStoreAdaptor::doesDirectoryExist(const RainString& sPath) throw()
+{
+  return m_pFileStore->doesDirectoryExist(sPath);
+}
+
+void ReadOnlyFileStoreAdaptor::createDirectory(const RainString& sPath) throw(...)
+{
+  THROW_SIMPLE_1(L"Cannot create directory \'%s\' in read-only file store", sPath.getCharacters());
+}
+
+bool ReadOnlyFileStoreAdaptor::createDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return false;
+}
+
+void ReadOnlyFileStoreAdaptor::deleteDirectory(const RainString& sPath) throw(...)
+{
+  THROW_SIMPLE_1(L"Cannot delete directory \'%s\' in read-only file store", sPath.getCharacters());
+}
+
+bool ReadOnlyFileStoreAdaptor::deleteDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return false;
 }

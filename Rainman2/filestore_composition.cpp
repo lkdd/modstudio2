@@ -28,6 +28,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "hash.h"
 #include <algorithm>
 #include <map>
+#include <stack>
 
 FileStoreComposition::FileStoreComposition() throw()
 {
@@ -129,42 +130,119 @@ void FileStoreComposition::getCaps(file_store_caps_t& oCaps) const throw()
     oCaps.bCanWriteFiles = oCaps.bCanWriteFiles || oThisCaps.bCanWriteFiles;
     oCaps.bCanDeleteFiles = oCaps.bCanDeleteFiles || oThisCaps.bCanDeleteFiles;
     oCaps.bCanOpenDirectories = oCaps.bCanOpenDirectories || oThisCaps.bCanOpenDirectories;
+    oCaps.bCanCreateDirectories = oCaps.bCanCreateDirectories || oThisCaps.bCanCreateDirectories;
+    oCaps.bCanDeleteDirectories = oCaps.bCanDeleteDirectories || oThisCaps.bCanDeleteDirectories;
   }
 }
 
 IFile* FileStoreComposition::openFile(const RainString& sPath, eFileOpenMode eMode) throw(...)
 {
-  IFile* pFile = openFileNoThrow(sPath, eMode);
-  if(pFile)
-    return pFile;
+  if(eMode == FM_Read)
+  {
+    try
+    {
+      for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
+      {
+        if((**itr).m_oCaps.bCanReadFiles)
+        {
+          RainString sFullPath = (**itr).m_sPrefix + sPath;
+          if((**itr).m_pStore->doesFileExist(sFullPath))
+            return (**itr).m_pStore->openFile(sPath, eMode);
+        }
+      }
+      THROW_SIMPLE_1(L"\'%s\' does not exist in any file stores", sPath.getCharacters());
+    }
+    CATCH_THROW_SIMPLE_1(L"Error opening file \'%s\' for reading", sPath.getCharacters(), {});
+  }
   else
-    THROW_SIMPLE_1(L"Cannot open \'%s\'", sPath.getCharacters());
+  {
+    try
+    {
+      for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
+      {
+        RainString sFullPath = (**itr).m_sPrefix + sPath;
+        if((**itr).m_pStore->doesFileExist(sFullPath))
+        {
+          return (**itr).m_pStore->openFile(sPath, eMode);
+        }
+        else if((**itr).m_oCaps.bCanWriteFiles)
+        {
+          RainString sParent = sPath.beforeLast('\\');
+          RainString sFullParent = (**itr).m_sPrefix + sParent;
+          (**itr).ensureDirectory(sFullParent, true);
+          return (**itr).m_pStore->openFile(sPath, eMode);
+        }
+      }
+      THROW_SIMPLE(L"No file stores with write capability to create the file in");
+    }
+    CATCH_THROW_SIMPLE_1(L"Error opening file \'%s\' for writing", sPath.getCharacters(), {});
+  }
 }
 
 IFile* FileStoreComposition::openFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw()
 {
-  for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
+  if(eMode == FM_Read)
   {
-    IFile* pFile = (**itr).m_pStore->openFileNoThrow((**itr).m_sPrefix + sPath, eMode);
-    if(pFile)
-      return pFile;
+    for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
+    {
+      if((**itr).m_oCaps.bCanReadFiles)
+      {
+        RainString sFullPath = (**itr).m_sPrefix + sPath;
+        if((**itr).m_pStore->doesFileExist(sFullPath))
+        {
+          IFile* pFile = (**itr).m_pStore->openFileNoThrow(sFullPath, eMode);
+          if(pFile)
+            return pFile;
+        }
+      }
+    }
+  }
+  else
+  {
+    for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
+    {
+      RainString sFullPath = (**itr).m_sPrefix + sPath;
+      if((**itr).m_pStore->doesFileExist(sFullPath))
+      {
+        return (**itr).m_pStore->openFileNoThrow(sPath, eMode);
+      }
+      else if((**itr).m_oCaps.bCanWriteFiles)
+      {
+        RainString sParent = sPath.beforeLast('\\');
+        RainString sFullParent = (**itr).m_sPrefix + sParent;
+        if((**itr).ensureDirectory(sFullParent, false))
+          return (**itr).m_pStore->openFile(sPath, eMode);
+        return 0; // while we could continue through the list, to ensure consistent behaviour
+                  // with openFile(), we abort after the first writable file store
+      }
+    }
   }
   return 0;
 }
 
-bool FileStoreComposition::file_store_info_t::doesFileExist(RainString sPath) throw(...)
+bool FileStoreComposition::file_store_info_t::ensureDirectory(RainString sFullPath, bool bThrow)
 {
-  sPath = m_sPrefix + sPath;
-  RainString sDirectory = sPath.beforeLast('\\');
-  RainString sName = sPath.afterLast('\\');
-  if(sDirectory.isEmpty())
-    THROW_SIMPLE_1(L"\'%s\' cannot be a file", sPath.getCharacters());
-  sDirectory += '\\';
-  std::auto_ptr<IDirectory> pDirectory(m_pStore->openDirectory(sPath));
-  for(IDirectory::iterator itr = pDirectory->begin(); itr != pDirectory->end(); ++itr)
+  if(m_pStore->doesDirectoryExist(sFullPath))
+    return true;
+  RainString sParent = sFullPath.beforeLast('\\');
+  try
   {
-    if(itr->name().compareCaseless(sName) == 0)
-      return itr->isDirectory() == false;
+    if(!sParent.isEmpty())
+      ensureDirectory(sParent, bThrow);
+    if(bThrow)
+      return m_pStore->createDirectory(sFullPath), true;
+    else
+      return m_pStore->createDirectoryNoThrow(sFullPath);
+  }
+  CATCH_THROW_SIMPLE_1(L"Cannot create directory \'%s\'", sFullPath.getCharacters(), {});
+}
+
+bool FileStoreComposition::doesFileExist(const RainString& sPath) throw()
+{
+  for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
+  {
+    if((**itr).m_pStore->doesFileExist((**itr).m_sPrefix + sPath))
+      return true;
   }
   return false;
 }
@@ -191,7 +269,7 @@ void FileStoreComposition::deleteFile(const RainString& sPath) throw(...)
     std::vector<file_store_info_t*> vToDeleteFrom;
     for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
     {
-      if((*itr)->doesFileExist(sPath))
+      if((**itr).m_pStore->doesFileExist((**itr).m_sPrefix + sPath))
       {
         if((*itr)->m_oCaps.bCanDeleteFiles == false)
           THROW_SIMPLE_1(L"\'%s\' exists in one or more file stores without delete capability", sPath.getCharacters());
@@ -262,7 +340,10 @@ public:
     std::map<unsigned long, bool> mapContents;
     for(std::vector<FileStoreComposition::file_store_info_t*>::iterator itr = m_pStore->m_vFileStores.begin(); itr != m_pStore->m_vFileStores.end(); ++itr)
     {
-      IDirectory *pDirectory = (*itr)->m_pStore->openDirectory((*itr)->m_sPrefix + m_sPath);
+      RainString sFullPath = (*itr)->m_sPrefix + m_sPath;
+      if(!(*itr)->m_pStore->doesDirectoryExist(sFullPath))
+        continue;
+      IDirectory *pDirectory = (*itr)->m_pStore->openDirectory(sFullPath);
       m_vDirectories.push_back(pDirectory);
       for(IDirectory::iterator itrDir = pDirectory->begin(); itrDir != pDirectory->end(); ++itrDir)
       {
@@ -338,4 +419,118 @@ IDirectory* FileStoreComposition::openDirectoryNoThrow(const RainString& sPath) 
     }
   }
   return pDirectory;
+}
+
+bool FileStoreComposition::doesDirectoryExist(const RainString& sPath) throw()
+{
+  for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
+  {
+    if((**itr).m_pStore->doesDirectoryExist((**itr).m_sPrefix + sPath))
+      return true;
+  }
+  return false;
+}
+
+void FileStoreComposition::createDirectory(const RainString& sPath) throw(...)
+{
+  if(doesDirectoryExist(sPath))
+    THROW_SIMPLE_1(L"Cannot create directory \'%s\' - it already exists", sPath.getCharacters());
+  try
+  {
+    for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
+    {
+      if((**itr).m_oCaps.bCanCreateDirectories)
+      {
+        const RainString& sPrefix = (**itr).m_sPrefix;
+        IFileStore* pStore = (**itr).m_pStore;
+        std::stack<RainString> stkPaths;
+        stkPaths.push(sPath);
+        while(!stkPaths.empty())
+        {
+          RainString sParent = stkPaths.top().beforeLast('\\');
+          if(pStore->doesDirectoryExist(sPrefix + sParent))
+          {
+            pStore->createDirectory(sPrefix + stkPaths.top());
+            stkPaths.pop();
+          }
+          else
+          {
+            if(sParent == stkPaths.top())
+              THROW_SIMPLE(L"Cannot create ancestors");
+            stkPaths.push(sParent);
+          }
+        }
+        return;
+      }
+    }
+    THROW_SIMPLE(L"No file stores can create directories");
+  }
+  CATCH_THROW_SIMPLE_1(L"Cannot create directory \'%s\'", sPath.getCharacters(), {});
+}
+
+bool FileStoreComposition::createDirectoryNoThrow(const RainString& sPath) throw()
+{
+  try
+  {
+    createDirectory(sPath);
+    return true;
+  }
+  catch(RainException *pE)
+  {
+    delete pE;
+    return false;
+  }
+}
+
+void FileStoreComposition::deleteDirectory(const RainString& sPath) throw(...)
+{
+  try
+  {
+    // Optimisations for simple cases
+    switch(m_vFileStores.size())
+    {
+    case 0:
+      THROW_SIMPLE_1(L"Cannot delete non-existant directory \'%s\'", sPath.getCharacters());
+
+    case 1:
+      m_vFileStores[0]->m_pStore->deleteDirectory(m_vFileStores[0]->m_sPrefix + sPath);
+      return;
+
+    default:
+      break;
+    }
+
+    // 2 or more filestores in the composition; test each for file existance and delete capability
+    std::vector<file_store_info_t*> vToDeleteFrom;
+    for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
+    {
+      if((**itr).m_pStore->doesDirectoryExist((**itr).m_sPrefix + sPath))
+      {
+        if((*itr)->m_oCaps.bCanDeleteDirectories == false)
+          THROW_SIMPLE_1(L"\'%s\' exists in one or more file stores without delete capability", sPath.getCharacters());
+        vToDeleteFrom.push_back(*itr);
+      }
+    }
+    if(vToDeleteFrom.empty())
+      THROW_SIMPLE_1(L"\'%s\' does not exist in any file stores", sPath.getCharacters());
+    for(std::vector<file_store_info_t*>::iterator itr = vToDeleteFrom.begin(); itr != vToDeleteFrom.end(); ++itr)
+    {
+      (**itr).m_pStore->deleteDirectory((**itr).m_sPrefix + sPath);
+    }
+  }
+  CATCH_THROW_SIMPLE_1(L"Cannot delete directory \'%s\'", sPath.getCharacters(), {});
+}
+
+bool FileStoreComposition::deleteDirectoryNoThrow(const RainString& sPath) throw()
+{
+  try
+  {
+    deleteDirectory(sPath);
+    return true;
+  }
+  catch(RainException *pE)
+  {
+    delete pE;
+    return false;
+  }
 }

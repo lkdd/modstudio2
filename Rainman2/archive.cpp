@@ -202,6 +202,12 @@ IFile* SgaArchive::openFileNoThrow(const RainString& sPath, eFileOpenMode eMode)
   return 0;
 }
 
+bool SgaArchive::doesFileExist(const RainString& sPath) throw()
+{
+  //! todo
+  return false;
+}
+
 void SgaArchive::deleteFile(const RainString& sPath) throw(...)
 {
   THROW_SIMPLE_1(L"Files cannot be deleted from SGA archives (attempt to delete \'%s\')", sPath.getCharacters());
@@ -307,6 +313,32 @@ IDirectory* SgaArchive::openDirectoryNoThrow(const RainString& sPath) throw()
   if(!_resolvePath(sPath, &pDirectoryInfo, &pFileInfo, false) || pDirectoryInfo == 0)
     return 0;
   return new (std::nothrow) ArchiveDirectoryAdapter(this, pDirectoryInfo);
+}
+
+bool SgaArchive::doesDirectoryExist(const RainString& sPath) throw()
+{
+  //! todo
+  return false;
+}
+
+void SgaArchive::createDirectory(const RainString& sPath) throw(...)
+{
+  THROW_SIMPLE_1(L"Directories cannot be created in SGA archives (attempt to create \'%s\')", sPath.getCharacters());
+}
+
+bool SgaArchive::createDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return false;
+}
+
+void SgaArchive::deleteDirectory(const RainString& sPath) throw(...)
+{
+  THROW_SIMPLE_1(L"Directories cannot be deleted from SGA archives (attempt to delete \'%s\')", sPath.getCharacters());
+}
+
+bool SgaArchive::deleteDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return false;
 }
 
 void SgaArchive::_loadEntryPointsUpTo(unsigned short int iEnsureLoaded) throw(...)

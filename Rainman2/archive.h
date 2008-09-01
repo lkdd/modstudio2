@@ -50,9 +50,9 @@ public:
   virtual IDirectory* openDirectoryNoThrow  (const RainString& sPath) throw();
   virtual bool        doesDirectoryExist    (const RainString& sPath) throw();
   virtual void        createDirectory       (const RainString& sPath) throw(...);
-  virtual void        createDirectoryNoThrow(const RainString& sPath) throw();
+  virtual bool        createDirectoryNoThrow(const RainString& sPath) throw();
   virtual void        deleteDirectory       (const RainString& sPath) throw(...);
-  virtual void        deleteDirectoryNoThrow(const RainString& sPath) throw();
+  virtual bool        deleteDirectoryNoThrow(const RainString& sPath) throw();
 
 protected:
   friend class ArchiveDirectoryAdapter;

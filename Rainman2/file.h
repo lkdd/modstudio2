@@ -326,7 +326,13 @@ public:
 
 //! Definition of the capabilities of a file store
 /*!
-  Call IFileStore::getCaps() to fill this structure
+  Call IFileStore::getCaps() to fill this structure.
+  The general rule for capabilities is to set them to false if that operation is
+  never possible, and set it to true if the operation may be possible, depending
+  on the file it is applied to. For example, the file system store reports that
+  it has the delete file capability, even though it cannot delete certain files.
+  The SGA store reports that it doesn't have the delete file capability, because
+  it cannot delete any files.
 */
 struct RAINMAN2_API file_store_caps_t
 {
@@ -438,9 +444,9 @@ public:
   virtual bool doesDirectoryExist(const RainString& sPath) throw() = 0;
 
   virtual void createDirectory(const RainString& sPath) throw(...) = 0;
-  virtual void createDirectoryNoThrow(const RainString& sPath) throw() = 0;
+  virtual bool createDirectoryNoThrow(const RainString& sPath) throw() = 0;
   virtual void deleteDirectory(const RainString& sPath) throw(...) = 0;
-  virtual void deleteDirectoryNoThrow(const RainString& sPath) throw() = 0;
+  virtual bool deleteDirectoryNoThrow(const RainString& sPath) throw() = 0;
 };
 
 //! Implementation of the IFileStore interface for the standard physical filesystem
@@ -471,9 +477,9 @@ public:
   virtual IDirectory* openDirectoryNoThrow  (const RainString& sPath) throw();
   virtual bool        doesDirectoryExist    (const RainString& sPath) throw();
   virtual void        createDirectory       (const RainString& sPath) throw(...);
-  virtual void        createDirectoryNoThrow(const RainString& sPath) throw();
+  virtual bool        createDirectoryNoThrow(const RainString& sPath) throw();
   virtual void        deleteDirectory       (const RainString& sPath) throw(...);
-  virtual void        deleteDirectoryNoThrow(const RainString& sPath) throw();
+  virtual bool        deleteDirectoryNoThrow(const RainString& sPath) throw();
 
 public:
   void _ensureGotEntryPoints() throw();
@@ -486,9 +492,15 @@ RAINMAN2_API FileSystemStore* RainGetFileSystemStore();
 
 RAINMAN2_API IFile* RainOpenFile(const RainString& sPath, eFileOpenMode eMode) throw(...);
 RAINMAN2_API IFile* RainOpenFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw();
+RAINMAN2_API bool RainDoesFileExist(const RainString& sPath) throw();
 RAINMAN2_API void RainDeleteFile(const RainString& sPath) throw(...);
 RAINMAN2_API bool RainDeleteFileNoThrow(const RainString& sPath) throw();
 RAINMAN2_API IDirectory* RainOpenDirectory(const RainString& sPath) throw(...);
 RAINMAN2_API IDirectory* RainOpenDirectoryNoThrow(const RainString& sPath) throw();
+RAINMAN2_API bool        RainDoesDirectoryExist    (const RainString& sPath) throw();
+RAINMAN2_API void        RainCreateDirectory       (const RainString& sPath) throw(...);
+RAINMAN2_API bool        RainCreateDirectoryNoThrow(const RainString& sPath) throw();
+RAINMAN2_API void        RainDeleteDirectory       (const RainString& sPath) throw(...);
+RAINMAN2_API bool        RainDeleteDirectoryNoThrow(const RainString& sPath) throw();
 
 RAINMAN2_API filesize_t operator+ (const filesize_t& a, const filesize_t& b);
