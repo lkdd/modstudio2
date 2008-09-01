@@ -171,6 +171,7 @@ void RainExceptionDialog::onDetails(wxCommandEvent& WXUNUSED(e))
   if(m_bShowingDetails)
   {
     size.x *= 3;
+    size.y += m_aMessages.GetCount() * 10;
   }
   else
   {

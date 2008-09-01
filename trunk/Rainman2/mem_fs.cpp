@@ -155,7 +155,7 @@ MemoryFileStore::~MemoryFileStore()
 }
 
 MemoryFileStore::directory_t::directory_t(RainString sName)
-  : m_sName(sName)
+  : m_sName(sName), m_pParent(0)
 {
 }
 
@@ -211,7 +211,7 @@ bool MemoryFileStore::_find(const RainString& sWhat, MemoryFileStore::directory_
     pCurrentDirectory = *itrDirectory;
   }
 
-  while(!sRemainder.isEmpty());
+  while(!sRemainder.isEmpty())
   {
     RainString sPart = sRemainder.beforeFirst('\\');
     sRemainder = sRemainder.afterFirst('\\');
@@ -263,6 +263,7 @@ bool MemoryFileStore::_find(const RainString& sWhat, MemoryFileStore::directory_
         CHECK_ALLOCATION(pNextDirectory);
       else if(pNextDirectory == 0)
         return false;
+      pNextDirectory->m_pParent = pCurrentDirectory;
       pCurrentDirectory->m_vSubdirectories.push_back(pNextDirectory);
     }
     else
@@ -284,6 +285,8 @@ void MemoryFileStore::getCaps(file_store_caps_t& oCaps) const throw()
   oCaps.bCanWriteFiles = true;
   oCaps.bCanDeleteFiles = true;
   oCaps.bCanOpenDirectories = true;
+  oCaps.bCanCreateDirectories = true;
+  oCaps.bCanDeleteDirectories = true;
 }
 
 IFile* MemoryFileStore::openFile(const RainString& sPath, eFileOpenMode eMode) throw(...)
@@ -322,6 +325,12 @@ IFile* MemoryFileStore::openFileNoThrow(const RainString& sPath, eFileOpenMode e
       return 0;
     return new (std::nothrow) MemFileReadAdaptor(pFile);
   }
+}
+
+bool MemoryFileStore::doesFileExist(const RainString& sPath) throw()
+{
+  file_t* pFile = 0;
+  return _find(sPath, 0, &pFile, false, false, false) && pFile;
 }
 
 void MemoryFileStore::deleteFile(const RainString& sPath) throw(...)
@@ -378,4 +387,45 @@ IDirectory* MemoryFileStore::openDirectoryNoThrow(const RainString& sPath) throw
   if(!_find(sPath, &pDirectory, 0, false, false, false) || pDirectory == 0)
     return 0;
   return new (std::nothrow) MemDirectoryAdaptor(pDirectory, this, sPath);
+}
+
+bool MemoryFileStore::doesDirectoryExist(const RainString& sPath) throw()
+{
+  directory_t* pDirectory = 0;
+  return _find(sPath, &pDirectory, 0, false, false, false) && pDirectory;
+}
+
+void MemoryFileStore::createDirectory(const RainString& sPath) throw(...)
+{
+  if(_find(sPath, 0, 0, false, false, false))
+    THROW_SIMPLE_1(L"Cannot create directory \'%s\' - it already exists", sPath.getCharacters());
+  _find(sPath, 0, 0, false, true, true);
+}
+
+bool MemoryFileStore::createDirectoryNoThrow(const RainString& sPath) throw()
+{
+  if(_find(sPath, 0, 0, false, false, false))
+    return false;
+  directory_t* pDirectory = 0;
+  return _find(sPath, &pDirectory, 0, false, true, false) && pDirectory;
+}
+
+void MemoryFileStore::deleteDirectory(const RainString& sPath) throw(...)
+{
+  directory_t* pDirectory = 0;
+  _find(sPath, &pDirectory, 0, false, false, true);
+  if(pDirectory->m_pParent == 0)
+    THROW_SIMPLE_1(L"Cannot delete root directory \'%s\'", sPath.getCharacters());
+  pDirectory->m_pParent->m_vSubdirectories.erase(std::find(pDirectory->m_pParent->m_vSubdirectories.begin(), pDirectory->m_pParent->m_vSubdirectories.end(), pDirectory));
+  delete pDirectory;
+}
+
+bool MemoryFileStore::deleteDirectoryNoThrow(const RainString& sPath) throw()
+{
+  directory_t* pDirectory = 0;
+  if(!_find(sPath, &pDirectory, 0, false, false, false) || !pDirectory || pDirectory->m_pParent == 0)
+    return false;
+  pDirectory->m_pParent->m_vSubdirectories.erase(std::find(pDirectory->m_pParent->m_vSubdirectories.begin(), pDirectory->m_pParent->m_vSubdirectories.end(), pDirectory));
+  delete pDirectory;
+  return true;
 }

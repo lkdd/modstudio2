@@ -51,9 +51,9 @@ public:
   virtual IDirectory* openDirectoryNoThrow  (const RainString& sPath) throw();
   virtual bool        doesDirectoryExist    (const RainString& sPath) throw();
   virtual void        createDirectory       (const RainString& sPath) throw(...);
-  virtual void        createDirectoryNoThrow(const RainString& sPath) throw();
+  virtual bool        createDirectoryNoThrow(const RainString& sPath) throw();
   virtual void        deleteDirectory       (const RainString& sPath) throw(...);
-  virtual void        deleteDirectoryNoThrow(const RainString& sPath) throw();
+  virtual bool        deleteDirectoryNoThrow(const RainString& sPath) throw();
 
 protected:
   friend class FileStoreCompositionDirectory;
@@ -66,7 +66,7 @@ protected:
     file_store_caps_t m_oCaps;
     bool m_bOwnsPointer;
 
-    bool doesFileExist(RainString sPath) throw(...);
+    bool ensureDirectory(RainString sFullPath, bool bThrow);
   };
 
   static bool _file_store_priority_sort(file_store_info_t* a, file_store_info_t* b);

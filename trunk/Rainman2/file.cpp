@@ -29,6 +29,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <stdio.h>
 #include <windows.h>
 #include <time.h>
+#include <errno.h>
 extern "C" {
 #include <lua.h>
 }
@@ -341,7 +342,13 @@ FileSystemStore::~FileSystemStore() throw()
 
 void FileSystemStore::getCaps(file_store_caps_t& oCaps) const throw()
 {
-  oCaps = true;
+  oCaps = false;
+  oCaps.bCanReadFiles = true;
+  oCaps.bCanWriteFiles = true;
+  oCaps.bCanDeleteFiles = true;
+  oCaps.bCanOpenDirectories = true;
+  oCaps.bCanCreateDirectories = true;
+  oCaps.bCanDeleteDirectories = true;
 }
 
 IFile* FileSystemStore::openFile(const RainString& sPath, eFileOpenMode eMode) throw(...)
@@ -352,6 +359,11 @@ IFile* FileSystemStore::openFile(const RainString& sPath, eFileOpenMode eMode) t
 IFile* FileSystemStore::openFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw()
 {
   return RainOpenFileNoThrow(sPath, eMode);
+}
+
+bool FileSystemStore::doesFileExist(const RainString& sPath) throw()
+{
+  return RainDoesFileExist(sPath);
 }
 
 void FileSystemStore::deleteFile(const RainString& sPath) throw(...)
@@ -385,6 +397,31 @@ IDirectory* FileSystemStore::openDirectory(const RainString& sPath) throw(...)
 IDirectory* FileSystemStore::openDirectoryNoThrow(const RainString& sPath) throw()
 {
   return RainOpenDirectoryNoThrow(sPath);
+}
+
+bool FileSystemStore::doesDirectoryExist(const RainString& sPath) throw()
+{
+  return RainDoesDirectoryExist(sPath);
+}
+
+void FileSystemStore::createDirectory(const RainString& sPath) throw(...)
+{
+  RainCreateDirectory(sPath);
+}
+
+bool FileSystemStore::createDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return RainCreateDirectoryNoThrow(sPath);
+}
+
+void FileSystemStore::deleteDirectory(const RainString& sPath) throw(...)
+{
+  RainDeleteDirectory(sPath);
+}
+
+bool FileSystemStore::deleteDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return RainDeleteDirectoryNoThrow(sPath);
 }
 
 void FileSystemStore::_ensureGotEntryPoints() throw()
@@ -497,16 +534,21 @@ IFile* RainOpenFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw()
   return new NOTHROW RainFileAdapter(pRawFile);
 }
 
+bool RainDoesFileExist(const RainString& sPath) throw()
+{
+  DWORD dwAttributes = GetFileAttributes(sPath.getCharacters());
+  return dwAttributes != INVALID_FILE_ATTRIBUTES && (dwAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
+}
+
 void RainDeleteFile(const RainString& sPath) throw(...)
 {
-  //! \todo
-  THROW_SIMPLE(L"TODO");
+  if(!RainDeleteFileNoThrow(sPath))
+    THROW_SIMPLE_1(L"Cannot delete file \'%s\'", sPath.getCharacters());
 }
 
 bool RainDeleteFileNoThrow(const RainString& sPath) throw()
 {
-  //! \todo
-  return false;
+  return DeleteFile(sPath.getCharacters()) == TRUE;
 }
 
 class RainDirectoryAdapter : public IDirectory
@@ -608,6 +650,64 @@ IDirectory* RainOpenDirectoryNoThrow(const RainString& sPath) throw()
     delete e;
     return 0;
   }
+}
+
+bool RainDoesDirectoryExist(const RainString& sPath) throw()
+{
+  DWORD dwAttributes = GetFileAttributes(sPath.getCharacters());
+  return dwAttributes != INVALID_FILE_ATTRIBUTES && (dwAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}
+
+void RainCreateDirectory(const RainString& sPath) throw(...)
+{
+  if(_wmkdir(sPath.getCharacters()) == -1)
+  {
+    const wchar_t* sErr = L"Cannot create directory \'%s\'";
+    switch(errno)
+    {
+    case EEXIST:
+      sErr = L"Cannot create directory \'%s\' (POSIX already exists error)";
+      break;
+
+    case ENOENT:
+      sErr = L"Cannot create directory \'%s\' (POSIX invalid path error)";
+      break;
+    }
+    THROW_SIMPLE_1(sErr, sPath.getCharacters());
+  }
+}
+
+bool RainCreateDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return _wmkdir(sPath.getCharacters()) == 0;
+}
+
+void RainDeleteDirectory(const RainString& sPath) throw(...)
+{
+  if(_wrmdir(sPath.getCharacters()) == -1)
+  {
+    const wchar_t* sErr = L"Cannot delete directory \'%s\'";
+    switch(errno)
+    {
+    case ENOTEMPTY:
+      sErr = L"Cannot delete directory \'%s\' (POSIX not empty error)";
+      break;
+
+    case ENOENT:
+      sErr = L"Cannot delete directory \'%s\' (POSIX invalid path error)";
+      break;
+
+    case EACCES:
+      sErr = L"Cannot delete directory \'%s\' (POSIX access error)";
+      break;
+    };
+    THROW_SIMPLE_1(sErr, sPath.getCharacters());
+  }
+}
+
+bool RainDeleteDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return _wrmdir(sPath.getCharacters()) == 0;
 }
 
 FileSystemStore* RainGetFileSystemStore()

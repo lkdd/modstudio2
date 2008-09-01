@@ -61,7 +61,8 @@ void MemoryWriteFile::write(const void* pSource, size_t iItemSize, size_t iItemC
     char *pNewBuffer = CHECK_ALLOCATION(new (std::nothrow) char[m_iSize <<= 1]);
     m_pBufferEnd = pNewBuffer + m_iSize;
     m_pEnd = m_pEnd - m_pBuffer + pNewBuffer;
-    m_pPointer = m_pPointer - m_pBuffer + pNewBuffer;
+    std::copy(m_pBuffer, m_pPointer, pNewBuffer);
+    m_pPointer = m_pPointer - m_pBuffer + pNewBuffer; 
     delete[] m_pBuffer;
     m_pBuffer = pNewBuffer;
   }
@@ -82,6 +83,7 @@ size_t MemoryWriteFile::writeNoThrow(const void* pSource, size_t iItemSize, size
       m_iSize <<= 1;
       m_pBufferEnd = pNewBuffer + m_iSize;
       m_pEnd = m_pEnd - m_pBuffer + pNewBuffer;
+      std::copy(m_pBuffer, m_pPointer, pNewBuffer);
       m_pPointer = m_pPointer - m_pBuffer + pNewBuffer;
       delete[] m_pBuffer;
       m_pBuffer = pNewBuffer;
