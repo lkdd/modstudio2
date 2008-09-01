@@ -26,18 +26,26 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 LuaShortSharpAlloc::LuaShortSharpAlloc()
 {
+  // Allocate the memory pool and pool state
   size_t iByteCount = small_block_size * small_block_count;
   if(iByteCount == 0)
     iByteCount = 1;
   m_pSmallBlocks = new byte[iByteCount];
   m_bInUse = new bool[small_block_count];
+
+  // Fill the pool with a constant value for debugging reasons
   std::fill(m_pSmallBlocks, m_pSmallBlocks + iByteCount, 0xCE);
+
+  // Mark all blocks as un-allocated
   std::fill(m_bInUse, m_bInUse + small_block_count, false);
+
+  // Allocate block #0 next
   m_iNextSmallBlock = 0;
 }
 
 LuaShortSharpAlloc::~LuaShortSharpAlloc()
 {
+  // Free the memory pool and pool state
   delete[] m_pSmallBlocks;
   delete[] m_bInUse;
 }
@@ -106,22 +114,34 @@ LuaShortSharpAlloc::byte* LuaShortSharpAlloc::alloc(LuaShortSharpAlloc::byte* pt
 
 LuaShortSharpAlloc::byte* LuaShortSharpAlloc::_allocNextSmall()
 {
-  while(m_bInUse[m_iNextSmallBlock])
-    m_iNextSmallBlock = ++m_iNextSmallBlock % small_block_count;
-  byte* ret = m_pSmallBlocks + (small_block_size * m_iNextSmallBlock);
-  m_bInUse[m_iNextSmallBlock] = true;
+  // Check for impending doom, and abort if doom is upon us
   if(++m_iAllocatedSmallCount == small_block_count)
     return --m_iAllocatedSmallCount, 0; // eek
-  return ret;
+
+  // Find the next free block
+  while(m_bInUse[m_iNextSmallBlock])
+    m_iNextSmallBlock = ++m_iNextSmallBlock % small_block_count;
+
+  // Mark the block as in use and return it
+  m_bInUse[m_iNextSmallBlock] = true;
+  return m_pSmallBlocks + (small_block_size * m_iNextSmallBlock);
 }
 
 void LuaShortSharpAlloc::_freeSmall(byte* ptr)
 {
-  --m_iAllocatedSmallCount;
+  // Convert the block to an index, and mark it as un-allocated
   m_bInUse[(ptr - m_pSmallBlocks) / small_block_size] = false;
+
+  // Decrement the allocated count for bookkeeping purposes
+  --m_iAllocatedSmallCount;
 }
 
 void* LuaShortSharpAlloc::allocf(void *ud, void *ptr, size_t osize, size_t nsize)
 {
-  return reinterpret_cast<void*>(reinterpret_cast<LuaShortSharpAlloc*>(ud)->alloc(reinterpret_cast<byte*>(ptr), osize, nsize));
+  // Do all sorts of pointer type casting to invoke the true alloc function
+  return reinterpret_cast<void*>(
+    reinterpret_cast<LuaShortSharpAlloc*>(ud)->alloc(
+      reinterpret_cast<byte*>(ptr), osize, nsize
+    )
+  );
 }
