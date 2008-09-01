@@ -62,8 +62,8 @@ protected:
   byte* _allocNextSmall();
   void _freeSmall(byte* ptr);
 
-  static const int small_block_size  = 4096;
-  static const int small_block_count = 8192;
+  static const int small_block_size  = 4096; //!< Size, in bytes, of a 'small' memory block
+  static const int small_block_count = 8192; //!< The number of 'small' memory blocks to have in the pool
 
   std::allocator<byte> m_oFallbackAllocator;
   byte* m_pSmallBlocks;

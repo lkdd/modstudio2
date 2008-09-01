@@ -651,10 +651,19 @@ void frmLuaEditor::setSource(IDirectory* pRootDirectory, IFileStore *pDirectoryS
   CHECK_ASSERT(pDirectoryStore != 0);
   CHECK_ASSERT(m_pRootDirectory == 0);
 
-  m_pRootDirectory = pRootDirectory;
-  m_pDirectoryStore = pDirectoryStore;
+  FileStoreComposition *pComposition = CHECK_ALLOCATION(new (std::nothrow) FileStoreComposition);
+  pComposition->addFileStore(new ReadOnlyFileStoreAdaptor(pDirectoryStore), L"", 10, true);
+  pComposition->addFileStore(new MemoryFileStore, L"", 20, true);
 
-  _populateInheritanceTree();
+  m_pDirectoryStore = pComposition;
+  m_pRootDirectory = pComposition->openDirectory(pRootDirectory->getPath());
+  delete pRootDirectory;
+
+  try
+  {
+    _populateInheritanceTree();
+  }
+  CATCH_THROW_SIMPLE(L"Cannot build inheritance tree", {});
 }
 
 void frmLuaEditor::_populateInheritanceTree()

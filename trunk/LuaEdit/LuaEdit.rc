@@ -34,8 +34,8 @@ IDB_ATTRIBICONS         BITMAP                  "AttribIcons.bmp"
 // "PNG"
 //
 
-IDP_SAVEBIN             "PNG"                   "save_binary.png"
-IDP_SAVELUA             "PNG"                   "save_lua.png"
+IDP_SAVEBIN             PNG                   "save_binary.png"
+IDP_SAVELUA             PNG                   "save_lua.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //
