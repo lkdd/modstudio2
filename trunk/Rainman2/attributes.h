@@ -28,29 +28,57 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 class IAttributeTable;
 
+//! All the possible types of values found in attribute files
 enum eAttributeValueTypes
 {
-  VT_String,
-  VT_Boolean,
-  VT_Table,
-  VT_Float,
+  VT_String,  //!< String data (represented with a RainString, but may be stored as ASCII)
+  VT_Boolean, //!< Boolean data (true/false)
+  VT_Table,   //!< A table containing further values
+  VT_Float,   //!< Single-precision floating point data
+
+  //! Should never be found in attribute files, but provided as a convenience
   VT_Unknown,
 };
 
+//! All the possible icons which represent inheritance in an attribute file
+/*!
+  Only some types of attribute files support inheritance. These icons are designed
+  to make editing those easier by making it clear what values are inherited and
+  which aren't.
+*/
 enum eAttributeValueIcons
 {
+  //! The value/table is *exactly* the same as in the parent file
   VI_SameAsParent,
+
+  //! The value is different to the parent file (not applicable to tables)
   VI_DifferentToParent,
+
+  //! The table inherits from a parent, but has some values which are not the same as parent
+  /*!
+    If *all* the values within a table are the same as the parent, then the table itself is
+    the same as parent. Otherwise, this icon is used if there is a parent, and VI_NewSinceParent
+    is used if not.
+  */
   VI_Table,
+
+  //! The value/table is not in the parent file
   VI_NewSinceParent,
 };
 
+//! Interface for a key/value pair from an attribute file
 class RAINMAN2_API IAttributeValue
 {
 public:
-  virtual ~IAttributeValue();
+  virtual ~IAttributeValue(); //!< Virtual destructor
 
+  //! Get the name (key) of the value
+  /*!
+    The returned value is a hash. Use one of the RgdDictionary::hashTo methods
+    to convert it to text.
+  */
   virtual unsigned long        getName()      const throw() = 0;
+
   virtual eAttributeValueTypes getType()      const throw() = 0;
   virtual eAttributeValueIcons getIcon()      const throw() = 0;
   virtual RainString           getFileSetIn() const throw() = 0;
@@ -81,7 +109,7 @@ class RAINMAN2_API IAttributeTable
 public:
   virtual ~IAttributeTable();
 
-  static const int NO_INDEX = ULONG_MAX;
+  static const unsigned long NO_INDEX = static_cast<unsigned long>(-1);
 
   virtual unsigned long getChildCount() throw() = 0;
   virtual IAttributeValue* getChild(unsigned long iIndex) throw(...) = 0;

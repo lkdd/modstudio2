@@ -86,6 +86,9 @@ MD5Hash::~MD5Hash()
 }
 
 size_t MD5Hash::getSizeInBytes() const throw() {return 16;}
+bool MD5Hash::canUpdatesBeSplit() const throw() {return true;}
+const char* MD5Hash::getFamily() const throw() {return "MD";}
+bool MD5Hash::isCaseIndependant() const throw() {return false;}
 
 void MD5Hash::update(const char* pBuffer, size_t iBufferLength) throw()
 {
@@ -270,10 +273,10 @@ RGDHash::RGDHash() throw()
 RGDHash::~RGDHash() throw()
 {}
 
-size_t RGDHash::getSizeInBytes() const throw()
-{
-  return sizeof(unsigned long);
-}
+size_t RGDHash::getSizeInBytes() const throw() {return sizeof(unsigned long);}
+bool RGDHash::canUpdatesBeSplit() const throw() {return false;}
+const char* RGDHash::getFamily() const throw() {return "RGD";}
+bool RGDHash::isCaseIndependant() const throw() {return false;}
 
 void RGDHash::update(const char* pBuffer, size_t iBufferLength) throw()
 {
@@ -350,10 +353,10 @@ CRCHash::CRCHash() throw()
 CRCHash::~CRCHash() throw()
 {}
 
-size_t CRCHash::getSizeInBytes() const throw()
-{
-  return sizeof(unsigned long);
-}
+size_t CRCHash::getSizeInBytes() const throw() {return sizeof(unsigned long);}
+bool CRCHash::canUpdatesBeSplit() const throw() {return true;}
+const char* CRCHash::getFamily() const throw() {return "CRC";}
+bool CRCHash::isCaseIndependant() const throw() {return false;}
 
 void CRCHash::update(const char* pBuffer, size_t iBufferLength) throw()
 {
@@ -370,10 +373,10 @@ CRCCaselessHash::CRCCaselessHash() throw()
 CRCCaselessHash::~CRCCaselessHash() throw()
 {}
 
-size_t CRCCaselessHash::getSizeInBytes() const throw()
-{
-  return sizeof(unsigned long);
-}
+size_t CRCCaselessHash::getSizeInBytes() const throw() {return sizeof(unsigned long);}
+bool CRCCaselessHash::canUpdatesBeSplit() const throw() {return true;}
+const char* CRCCaselessHash::getFamily() const throw() {return "CRC";}
+bool CRCCaselessHash::isCaseIndependant() const throw() {return true;}
 
 void CRCCaselessHash::update(const char* pBuffer, size_t iBufferLength) throw()
 {

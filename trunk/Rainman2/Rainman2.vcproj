@@ -218,6 +218,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\inifile.cpp"
+					>
+				</File>
+				<File
 					RelativePath=".\luattrib.cpp"
 					>
 				</File>
@@ -301,6 +305,10 @@
 				</File>
 				<File
 					RelativePath=".\binaryattrib.h"
+					>
+				</File>
+				<File
+					RelativePath=".\inifile.h"
 					>
 				</File>
 				<File

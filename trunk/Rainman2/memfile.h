@@ -99,12 +99,14 @@ protected:
 class RAINMAN2_API MemoryReadFile : public MemoryFileBase<const char*>
 {
 public:
-  MemoryReadFile(const char *pBuffer, size_t iSize) throw();
+  MemoryReadFile(const char *pBuffer, size_t iSize, bool bTakeOwnership = false) throw();
+  virtual ~MemoryReadFile() throw();
 
   virtual void write(const void* pSource, size_t iItemSize, size_t iItemCount) throw(...);
   virtual size_t writeNoThrow(const void* pSource, size_t iItemSize, size_t iItemCount) throw();
 
 protected:
+  bool m_bOwnsBuffer;
 };
 
 class RAINMAN2_API MemoryWriteFile : public MemoryFileBase<char*>

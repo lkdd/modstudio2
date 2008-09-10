@@ -52,7 +52,20 @@ public:
   */
   LuaAttribCache* getCache() throw(...);
 
+  //! Set the name of the attribute file
+  /*!
+    The name is used for several purposes:
+     * Debugging
+     * The File: '...' line when saving as text
+     * Stating which file values were set in
+    As such, it is not required to set a name, but it does make things nicer.
+  */
   void setName(const RainString& sName) throw();
+
+  //! Get the name of the attribute file
+  /*!
+    This will be a blank string unless setName() has been called
+  */
   RainString& getName() throw();
 
   //! Set the cache to use to load required files

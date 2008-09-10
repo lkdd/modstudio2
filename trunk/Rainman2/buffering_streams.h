@@ -26,6 +26,59 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "file.h"
 
 template <class TChar, size_t iBufferLength = 1024>
+class BufferingInputTextStream
+{
+public:
+  BufferingInputTextStream(IFile* pFile) throw()
+    : m_pFile(pFile), m_iBufferPosition(0), m_bEndOfFile(false)
+  {
+  }
+
+  RainString readLine(RainChar cDelimiter = '\n') throw(...)
+  {
+    if(m_bEndOfFile)
+      THROW_SIMPLE(L"End of file reached");
+
+    size_t iDelimiterIndex;
+    while((iDelimiterIndex = m_sBuffer.indexOf(cDelimiter, m_iBufferPosition)) == static_cast<size_t>(-1))
+    {
+      TChar cBuffer[iBufferLength];
+      size_t iNumBytes = m_pFile->readArrayNoThrow(cBuffer, iBufferLength);
+      if(iNumBytes == 0)
+      {
+        m_bEndOfFile = true;
+        return m_sBuffer.mid(m_iBufferPosition, m_sBuffer.length() - m_iBufferPosition);
+      }
+      else
+      {
+        m_sBuffer.append(cBuffer, iNumBytes);
+      }
+    }
+
+    ++iDelimiterIndex;
+    RainString sReturnValue = m_sBuffer.mid(m_iBufferPosition, iDelimiterIndex - m_iBufferPosition);
+    m_iBufferPosition = iDelimiterIndex;
+    if(m_iBufferPosition > iBufferLength)
+    {
+      m_sBuffer = m_sBuffer.mid(m_iBufferPosition, m_sBuffer.length() - m_iBufferPosition);
+      m_iBufferPosition = 0;
+    }
+    return sReturnValue;
+  }
+
+  bool isEOF() const
+  {
+    return m_bEndOfFile;
+  }
+
+protected:
+  RainString m_sBuffer;
+  IFile *m_pFile;
+  size_t m_iBufferPosition;
+  bool m_bEndOfFile;
+};
+
+template <class TChar, size_t iBufferLength = 1024>
 class BufferingOutputStream
 {
 public:

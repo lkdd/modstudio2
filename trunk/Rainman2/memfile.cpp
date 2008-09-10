@@ -24,11 +24,18 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "memfile.h"
 
-MemoryReadFile::MemoryReadFile(const char *pBuffer, size_t iSize) throw()
+MemoryReadFile::MemoryReadFile(const char *pBuffer, size_t iSize, bool bTakeOwnership) throw()
 {
   m_pBuffer = m_pPointer = pBuffer;
   m_iSize = iSize;
   m_pEnd = m_pBuffer + iSize;
+  m_bOwnsBuffer = bTakeOwnership;
+}
+
+MemoryReadFile::~MemoryReadFile()
+{
+  if(m_bOwnsBuffer)
+    delete[] const_cast<char*>(m_pBuffer);
 }
 
 void MemoryReadFile::write(const void* pSource, size_t iItemSize, size_t iItemCount) throw(...)

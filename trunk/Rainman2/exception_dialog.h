@@ -72,4 +72,4 @@ private:
 };
 
 #define EXCEPTION_MESSAGE_BOX(message, e) RainExceptionDialog::show(new RainException(__WFILE__, __LINE__, message, e));
-#define CATCH_MESSAGE_BOX(message, cleanup) catch (RainException *e) { EXCEPTION_MESSAGE_BOX(message, e); cleanup; }
+#define CATCH_MESSAGE_BOX(message, cleanup) catch (RainException *pRainError) { EXCEPTION_MESSAGE_BOX(message, pRainError); cleanup; }

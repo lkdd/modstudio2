@@ -837,7 +837,28 @@ void LuaAttrib::loadFromFile(IFile *pFile) throw(...)
   lua_checkstack(L, 1);
   if(pFile->lua_load(L, "attrib file") != 0)
   {
-    THROW_SIMPLE_1(L"Cannot parse attrib file: %S", lua_tostring(L, -1));
+    // Try and parse the Lua error into a nice exception
+    // Lua gives an error as "file:line:message", which can be reparsed into an exception
+    size_t iLength;
+    const char* sErr = lua_tolstring(L, -1, &iLength);
+    if(sErr)
+    {
+      const char* sLineBegin = strchr(sErr, ':');
+      if(sLineBegin)
+      {
+        ++sLineBegin;
+        const char* sMessageBegin = strchr(sLineBegin, ':');
+        if(sMessageBegin)
+        {
+          ++sMessageBegin;
+          throw new RainException(__FILE__, __LINE__, RainString(L"Cannot parse attrib file"), new
+            RainException(RainString(sErr, sLineBegin - sErr - 1), atoi(sLineBegin), RainString(sMessageBegin, iLength - (sMessageBegin - sErr))));
+        }
+      }
+    }
+
+    // ... or just throw a simple exception
+    throw new RainException(__FILE__, __LINE__, RainString(L"Cannot parse attrib file: ") + RainString(L, -1));
   }
   Proto *pPrototype = reinterpret_cast<Closure*>(const_cast<void*>(lua_topointer(L, -1)))->l.p;
   _execute(pPrototype);
@@ -908,160 +929,175 @@ void LuaAttrib::_execute(Proto* pFunction)
 {
   _value_t oTempK1, oTempK2;
   _value_t* pStack = CHECK_ALLOCATION(new (std::nothrow) _value_t[pFunction->maxstacksize]);
+  Instruction *I;
   AutoDeleteArray<_value_t> DeleteStack(pStack);
 
   bool bContinue = true;
-  for(Instruction *I = pFunction->code; bContinue; ++I)
+  try
   {
-    switch(GET_OPCODE(*I))
+    for(I = pFunction->code; bContinue; ++I)
     {
-    case OP_MOVE:      // A B   R(A) := R(B)
-      pStack[GETARG_A(*I)] = pStack[GETARG_B(*I)];
-      break;
-
-    case OP_LOADK:     // A Bx  R(A) := Kst(Bx)
-      _loadk(pStack + GETARG_A(*I), pFunction, GETARG_Bx(*I));
-      break;
-
-    case OP_LOADBOOL:  // A B C R(A) := (Bool)B; if (C) pc++
-      pStack[GETARG_A(*I)].free();
-      pStack[GETARG_A(*I)].eType = _value_t::T_Boolean;
-      pStack[GETARG_A(*I)].bValue = GETARG_B(*I) != 0;
-      if(GETARG_C(*I))
-        ++I;
-      break;
-
-    case OP_LOADNIL:   // A B   R(A) := ... := R(B) := nil
-      for(int i = GETARG_A(*I); i <= GETARG_B(*I); ++i)
-        pStack[i].free();
-      break;
-
-    case OP_GETGLOBAL:{// A Bx  R(A) := Gbl[Kst(Bx)]
-      unsigned int iHash = tsvalue(pFunction->k + GETARG_Bx(*I))->hash;
-      const char* s = svalue(pFunction->k + GETARG_Bx(*I));
-      switch(iHash)
+      switch(GET_OPCODE(*I))
       {
-      case LuaCompileTimeHashes::GameData:
-        pStack[GETARG_A(*I)] = m_oGameData;
+      case OP_MOVE:      // A B   R(A) := R(B)
+        pStack[GETARG_A(*I)] = pStack[GETARG_B(*I)];
         break;
-      case LuaCompileTimeHashes::MetaData:
-        pStack[GETARG_A(*I)] = m_oMetaData;
-        break;
-      case LuaCompileTimeHashes::Inherit:
-      case LuaCompileTimeHashes::Reference:
-        pStack[GETARG_A(*I)].free();
-        pStack[GETARG_A(*I)].eType = _value_t::T_ReferenceFn;
-        break;
-      case LuaCompileTimeHashes::InheritMeta:
-        pStack[GETARG_A(*I)].free();
-        pStack[GETARG_A(*I)].eType = _value_t::T_InheritMetaFn;
-        break;
-      default:
-        THROW_SIMPLE_1(L"Unsupported global: %S", s);
-      }
-      break; }
 
-    case OP_GETTABLE: {// A B C R(A) := R(B)[RK(C)]
-      _value_t* pTable = pStack + GETARG_B(*I);
-      CHECK_ASSERT(pTable->eType == _value_t::T_Table && pTable->pValue && "Using a non-table value as a table");
-      _value_t* pKey = ISK(GETARG_C(*I)) ? (_loadk(&oTempK1, pFunction, INDEXK(GETARG_C(*I))), &oTempK1) : pStack + GETARG_C(*I);
-      unsigned long iHash = _hashvalue(pKey);
-      _value_t oValue;
-      _table_t* pLookin = pTable->pValue;
-      while(pLookin && pLookin->mapContents.count(iHash) == 0)
-        pLookin = const_cast<_table_t*>(pLookin->pInheritFrom);
-      if(pLookin)
-      {
-        oValue = pLookin->mapContents[iHash];
-        if(oValue.eType == _value_t::T_Table && pLookin != pTable->pValue)
+      case OP_LOADK:     // A Bx  R(A) := Kst(Bx)
+        _loadk(pStack + GETARG_A(*I), pFunction, GETARG_Bx(*I));
+        break;
+
+      case OP_LOADBOOL:  // A B C R(A) := (Bool)B; if (C) pc++
+        pStack[GETARG_A(*I)].free();
+        pStack[GETARG_A(*I)].eType = _value_t::T_Boolean;
+        pStack[GETARG_A(*I)].bValue = GETARG_B(*I) != 0;
+        if(GETARG_C(*I))
+          ++I;
+        break;
+
+      case OP_LOADNIL:   // A B   R(A) := ... := R(B) := nil
+        for(int i = GETARG_A(*I); i <= GETARG_B(*I); ++i)
+          pStack[i].free();
+        break;
+
+      case OP_GETGLOBAL:{// A Bx  R(A) := Gbl[Kst(Bx)]
+        unsigned int iHash = tsvalue(pFunction->k + GETARG_Bx(*I))->hash;
+        const char* s = svalue(pFunction->k + GETARG_Bx(*I));
+        switch(iHash)
         {
-          _wraptable(&oValue);
-          pTable->pValue->mapContents[iHash] = oValue;
+        case LuaCompileTimeHashes::GameData:
+          pStack[GETARG_A(*I)] = m_oGameData;
+          break;
+        case LuaCompileTimeHashes::MetaData:
+          pStack[GETARG_A(*I)] = m_oMetaData;
+          break;
+        case LuaCompileTimeHashes::Inherit:
+        case LuaCompileTimeHashes::Reference:
+          pStack[GETARG_A(*I)].free();
+          pStack[GETARG_A(*I)].eType = _value_t::T_ReferenceFn;
+          break;
+        case LuaCompileTimeHashes::InheritMeta:
+          pStack[GETARG_A(*I)].free();
+          pStack[GETARG_A(*I)].eType = _value_t::T_InheritMetaFn;
+          break;
+        default:
+          THROW_SIMPLE_1(L"Unsupported global: %S", s);
         }
-      }
-      pStack[GETARG_A(*I)] = oValue;
-      break; }
+        break; }
 
-    case OP_SETGLOBAL:{// A Bx  Gbl[Kst(Bx)] := R(A)
-      unsigned int iHash = tsvalue(pFunction->k + GETARG_Bx(*I))->hash;
-      if(iHash == LuaCompileTimeHashes::GameData)
-        m_oGameData = pStack[GETARG_A(*I)];
-      else if(iHash == LuaCompileTimeHashes::MetaData)
-        m_oMetaData = pStack[GETARG_A(*I)];
-      else
-        THROW_SIMPLE_1(L"Unsupported global for write access: %S", svalue(pFunction->k + GETARG_Bx(*I)));
-      break; }
+      case OP_GETTABLE: {// A B C R(A) := R(B)[RK(C)]
+        _value_t* pTable = pStack + GETARG_B(*I);
+        CHECK_ASSERT(pTable->eType == _value_t::T_Table && pTable->pValue && "Using a non-table value as a table");
+        _value_t* pKey = ISK(GETARG_C(*I)) ? (_loadk(&oTempK1, pFunction, INDEXK(GETARG_C(*I))), &oTempK1) : pStack + GETARG_C(*I);
+        unsigned long iHash = _hashvalue(pKey);
+        _value_t oValue;
+        _table_t* pLookin = pTable->pValue;
+        while(pLookin && pLookin->mapContents.count(iHash) == 0)
+          pLookin = const_cast<_table_t*>(pLookin->pInheritFrom);
+        if(pLookin)
+        {
+          oValue = pLookin->mapContents[iHash];
+          if(oValue.eType == _value_t::T_Table && pLookin != pTable->pValue)
+          {
+            _wraptable(&oValue);
+            pTable->pValue->mapContents[iHash] = oValue;
+          }
+        }
+        pStack[GETARG_A(*I)] = oValue;
+        break; }
 
-    case OP_SETTABLE: {// A B C R(A)[RK(B)] := RK(C)
-      _value_t* pTable = pStack + GETARG_A(*I);
-      _value_t* pKey = ISK(GETARG_B(*I)) ? (_loadk(&oTempK2, pFunction, INDEXK(GETARG_B(*I))), &oTempK2) : pStack + GETARG_B(*I);
-      _value_t* pValue = ISK(GETARG_C(*I)) ? (_loadk(&oTempK1, pFunction, INDEXK(GETARG_C(*I))), &oTempK1) : pStack + GETARG_C(*I);
-      if(pTable->eType != _value_t::T_Table || !pTable->pValue)
-      {
-        THROW_SIMPLE_3(L"Using a non-table value as a table: table['%S'] = '%S' on line %i",
-          pKey->eType == _value_t::T_String ? pKey->sValue : "(non string)",
-          pValue->eType == _value_t::T_String ? pValue->sValue : "(non string)",
-          static_cast<int>(pFunction->sizelineinfo == pFunction->sizecode ? pFunction->lineinfo[I - pFunction->code] : -1));
-      }
-      unsigned long iHash = _hashvalue(pKey);
-      pTable->pValue->mapContents[iHash] = *pValue;
-      break; }
-
-    case OP_NEWTABLE:  // A B C R(A) := {} (size = B,C)
-      pStack[GETARG_A(*I)].free();
-      pStack[GETARG_A(*I)].eType = _value_t::T_Table;
-      CHECK_ALLOCATION(pStack[GETARG_A(*I)].pValue = new (std::nothrow) _table_t(this));
-      break;
-
-    case OP_NOT: {     // A B   R(A) := not R(B)
-      bool bValue = false;
-      _value_t* pValue = pStack + GETARG_B(*I);
-      if(pValue->eType == _value_t::T_Nil)
-        bValue = true;
-      if(pValue->eType == _value_t::T_Boolean)
-        bValue = !pValue->bValue;
-      pValue = pStack + GETARG_A(*I);
-      pValue->free();
-      pValue->eType = _value_t::T_Boolean;
-      pValue->bValue = bValue;
-      break; }
-
-    case OP_JMP:       // sBx   pc+=sBx
-      I += GETARG_sBx(*I);
-      break;
-
-    case OP_CALL: {    // A B C R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
-      _value_t* pFunction = pStack + GETARG_A(*I);
-      CHECK_ASSERT((pFunction->eType == _value_t::T_InheritMetaFn || pFunction->eType == _value_t::T_ReferenceFn) && "Attempt to call a non-function");
-      CHECK_ASSERT(GETARG_B(*I) != 1 && "Function call requires at least one argument");
-      CHECK_ASSERT(GETARG_C(*I) == 2 && "Function call must have exactly one result");
-      _value_t* pFilename = pStack + GETARG_A(*I) + 1;
-      CHECK_ASSERT(pFilename->eType == _value_t::T_String && "Can only inherit/reference a string filename");
-      try
-      {
-        if(pFunction->eType == _value_t::T_InheritMetaFn)
-          pStack[GETARG_A(*I)] = getCache()->getMetaData(pFilename->sValue);
+      case OP_SETGLOBAL:{// A Bx  Gbl[Kst(Bx)] := R(A)
+        unsigned int iHash = tsvalue(pFunction->k + GETARG_Bx(*I))->hash;
+        if(iHash == LuaCompileTimeHashes::GameData)
+          m_oGameData = pStack[GETARG_A(*I)];
+        else if(iHash == LuaCompileTimeHashes::MetaData)
+          m_oMetaData = pStack[GETARG_A(*I)];
         else
-          pStack[GETARG_A(*I)] = getCache()->getGameData(pFilename->sValue);
-        if(pStack[GETARG_A(*I)].eType != _value_t::T_Table)
-          THROW_SIMPLE(L"Inheritance function did not return a table");
-      }
-      CATCH_THROW_SIMPLE_1(L"Cannot load \'%S\'", pFilename->sValue, {});
-      if(pStack[GETARG_A(*I)].eType == _value_t::T_Table)
-      {
-        _wraptable(pStack + GETARG_A(*I));
-        pStack[GETARG_A(*I)].pValue->mapContents[RgdDictionary::_REF] = *pFilename;
-        pStack[GETARG_A(*I)].pValue->pSourceFile = this;
-      }
-      break; }
+          THROW_SIMPLE_1(L"Unsupported global for write access: %S", svalue(pFunction->k + GETARG_Bx(*I)));
+        break; }
 
-    case OP_RETURN:    // A B   return R(A), ... ,R(A+B-2)	(see note)
-      bContinue = false;
-      break;
+      case OP_SETTABLE: {// A B C R(A)[RK(B)] := RK(C)
+        _value_t* pTable = pStack + GETARG_A(*I);
+        _value_t* pKey = ISK(GETARG_B(*I)) ? (_loadk(&oTempK2, pFunction, INDEXK(GETARG_B(*I))), &oTempK2) : pStack + GETARG_B(*I);
+        _value_t* pValue = ISK(GETARG_C(*I)) ? (_loadk(&oTempK1, pFunction, INDEXK(GETARG_C(*I))), &oTempK1) : pStack + GETARG_C(*I);
+        if(pTable->eType != _value_t::T_Table || !pTable->pValue)
+        {
+          THROW_SIMPLE_3(L"Using a non-table value as a table: table['%S'] = '%S' on line %i",
+            pKey->eType == _value_t::T_String ? pKey->sValue : "(non string)",
+            pValue->eType == _value_t::T_String ? pValue->sValue : "(non string)",
+            static_cast<int>(pFunction->sizelineinfo == pFunction->sizecode ? pFunction->lineinfo[I - pFunction->code] : -1));
+        }
+        unsigned long iHash = _hashvalue(pKey);
+        pTable->pValue->mapContents[iHash] = *pValue;
+        break; }
 
-    default:
-      THROW_SIMPLE_1(L"Unsupported Lua Opcode: %i", static_cast<int>(GET_OPCODE(*I)));
+      case OP_NEWTABLE:  // A B C R(A) := {} (size = B,C)
+        pStack[GETARG_A(*I)].free();
+        pStack[GETARG_A(*I)].eType = _value_t::T_Table;
+        CHECK_ALLOCATION(pStack[GETARG_A(*I)].pValue = new (std::nothrow) _table_t(this));
+        break;
+
+      case OP_NOT: {     // A B   R(A) := not R(B)
+        bool bValue = false;
+        _value_t* pValue = pStack + GETARG_B(*I);
+        if(pValue->eType == _value_t::T_Nil)
+          bValue = true;
+        if(pValue->eType == _value_t::T_Boolean)
+          bValue = !pValue->bValue;
+        pValue = pStack + GETARG_A(*I);
+        pValue->free();
+        pValue->eType = _value_t::T_Boolean;
+        pValue->bValue = bValue;
+        break; }
+
+      case OP_JMP:       // sBx   pc+=sBx
+        I += GETARG_sBx(*I);
+        break;
+
+      case OP_CALL: {    // A B C R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))
+        _value_t* pFunction = pStack + GETARG_A(*I);
+        CHECK_ASSERT((pFunction->eType == _value_t::T_InheritMetaFn || pFunction->eType == _value_t::T_ReferenceFn) && "Attempt to call a non-function");
+        CHECK_ASSERT(GETARG_B(*I) != 1 && "Function call requires at least one argument");
+        CHECK_ASSERT(GETARG_C(*I) == 2 && "Function call must have exactly one result");
+        _value_t* pFilename = pStack + GETARG_A(*I) + 1;
+        CHECK_ASSERT(pFilename->eType == _value_t::T_String && "Can only inherit/reference a string filename");
+        try
+        {
+          if(pFunction->eType == _value_t::T_InheritMetaFn)
+            pStack[GETARG_A(*I)] = getCache()->getMetaData(pFilename->sValue);
+          else
+            pStack[GETARG_A(*I)] = getCache()->getGameData(pFilename->sValue);
+          if(pStack[GETARG_A(*I)].eType != _value_t::T_Table)
+            THROW_SIMPLE(L"Inheritance function did not return a table");
+        }
+        CATCH_THROW_SIMPLE_1(L"Cannot load \'%S\'", pFilename->sValue, {});
+        if(pStack[GETARG_A(*I)].eType == _value_t::T_Table)
+        {
+          _wraptable(pStack + GETARG_A(*I));
+          pStack[GETARG_A(*I)].pValue->mapContents[RgdDictionary::_REF] = *pFilename;
+          pStack[GETARG_A(*I)].pValue->pSourceFile = this;
+        }
+        break; }
+
+      case OP_RETURN:    // A B   return R(A), ... ,R(A+B-2)	(see note)
+        bContinue = false;
+        break;
+
+      default:
+        THROW_SIMPLE_1(L"Unsupported Lua Opcode: %i", static_cast<int>(GET_OPCODE(*I)));
+      }
     }
+  }
+  catch(RainException *pE)
+  {
+    RainString sSource(L"Lua function");
+    if(pFunction->source && getstr(pFunction->source))
+      sSource = RainString(getstr(pFunction->source), pFunction->source->tsv.len);
+    unsigned long iLine = 0;
+    if(pFunction->lineinfo)
+      iLine = pFunction->lineinfo[I - pFunction->code];
+
+    throw new RainException(sSource, iLine, L"Error while executing Lua in custom VM", pE);
   }
 }
 

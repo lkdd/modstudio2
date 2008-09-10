@@ -26,19 +26,70 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "string.h"
 #include <map>
 
+//! A two-way dictionary for converting between strings and their RGD hashes
+/*!
+  After calling one of the asciiToHash() methods, the string being hashed is
+  remembered so that the hash can be converted back to a string using one of
+  the hashTo methods.
+  In order to get a complete dictionary as possible, it is recommended to always
+  use getSingleton() to get a reusable dictionary, rather than create a new
+  dictionary for something.
+*/
 class RAINMAN2_API RgdDictionary
 {
 public:
-  RgdDictionary();
-  ~RgdDictionary();
+  ~RgdDictionary() throw(); //!< default  destructor
 
-  static RgdDictionary* getSingleton();
+  //! Get an existing RgdDictionary which can can be re-used multiple times
+  /*!
+    The singleton RgdDictionary is silently created with the first call to
+    getSingleton(), and then returned by all future calls to getSingleton().
+    If the singleton is accidently deleted, then it will be remade by the
+    next call to getSingleton(). The singleton will be automatically deleted
+    when the Rainman DLL is unloaded.
+  */
+  static RgdDictionary* getSingleton() throw();
 
+  //! Calculate the hash code for a zero-terminated ASCII string
+  /*!
+    Equivalent to calling asciiToHash(sString, strlen(sString))
+  */
   unsigned long asciiToHash(const char* sString) throw();
+
+  //! Calculate the hash code for a known-length ASCII string
+  /*!
+    RGDHashSimple() is used to calculate the hash, and then if that hash is not
+    known to the dictionary, then an entry is made in the dictionary pairing up
+    the hash and the string which hashed to it.
+    In all cases, no exceptions are ever thrown, and the hash code is returned.
+  */
   unsigned long asciiToHash(const char* sString, size_t iLength) throw();
-  bool isHashKnown(unsigned long iHash) throw();
-  const char* hashToAscii(unsigned long iHash) throw(...);
-  const char* hashToAsciiNoThrow(unsigned long iHash) throw();
+  
+  //! Determine whether a string which hashes to a given value is known
+  /*!
+    Any value ever returned by asciiToHash() will be known by the dictionary, so
+    that hash value can be converted back to a string. 
+  */
+  bool isHashKnown(unsigned long iHash) const throw();
+
+  //! Try and get a string which hashes to a given value
+  /*!
+    \param iHash The hash code to find a string for
+    \param pLength If non-NULL, then the length of the string will be stored here
+    \return A valid zero-terminated ASCII string (although it may also contain embedded zeros)
+
+    If the hash is not known, then an exception is thrown. This function operates in constant
+    time - it does not try to brute force the hash if it is not known.
+  */
+  const char* hashToAscii(unsigned long iHash, size_t* pLength = NULL) throw(...);
+
+  //! Try and get a string which hashes to a given value
+  /*!
+    Same as hashToAscii(), except NULL is returned if the hash is not known, rather than an
+    exception being thrown.
+  */
+  const char* hashToAsciiNoThrow(unsigned long iHash, size_t* pLength = NULL) throw();
+
   const RainString* hashToString(unsigned long iHash) throw(...);
   const RainString* hashToStringNoThrow(unsigned long iHash) throw();
 
