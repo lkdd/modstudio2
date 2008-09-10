@@ -35,6 +35,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "../filestore_adaptors.h"
 #include "../filestore_composition.h"
 #include "../hash.h"
+#include "../inifile.h"
 #include "../luattrib.h"
 #include "../mem_fs.h"
 #include "../memfile.h"

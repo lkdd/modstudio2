@@ -162,21 +162,11 @@ RainString::RainString(const RainString& oCopyFrom) throw()
   ++m_pBuffer->iReferenceCount;
 }
 
-RainString::RainString(const RainChar* sZeroTermString) throw(...)
-{
-  _initFromChars(sZeroTermString, sZeroTermString ? wcslen(sZeroTermString) : 0);
-}
-
 RainString::RainString(lua_State *L, int idx) throw(...)
 {
   size_t len;
   const char* str = lua_tolstring(L, idx, &len);
   _initFromChars(str, len);
-}
-
-RainString::RainString(const char* sZeroTermString) throw(...)
-{
-  _initFromChars(sZeroTermString, sZeroTermString ? strlen(sZeroTermString) : 0);
 }
 
 RainString& RainString::operator= (const RainChar* sZeroTermString) throw(...)
@@ -322,6 +312,30 @@ RainString& RainString::toUpper() throw(...)
   return *this;
 }
 
+size_t RainString::indexOf(RainChar cCharacter, size_t iStartAt, size_t iNotFoundValue) const
+{
+  const_iterator begin = this->begin() + iStartAt, end = this->end();
+  if(begin >= end)
+    return iNotFoundValue;
+  const_iterator position = std::find(begin, end, cCharacter);
+  if(position == end)
+    return iNotFoundValue;
+  else
+    return position - begin + iStartAt;
+}
+
+RainString RainString::trimWhitespace() const throw(...)
+{
+  const RainChar* pChars = getCharacters();
+  size_t iBegin = 0;
+  while(RainStrFunctions<wchar_t>::isWhitespace(pChars[iBegin]))
+    ++iBegin;
+  size_t iEnd = length();
+  while(iEnd > iBegin && RainStrFunctions<wchar_t>::isWhitespace(pChars[iEnd - 1]))
+    --iEnd;
+  return mid(iBegin, iEnd - iBegin);
+}
+
 void RainString::printfV(const RainString& sFormat, va_list v) throw(...)
 {
   _ensureExclusiveBufferAccess();
@@ -408,6 +422,8 @@ bool RainString::operator== (const wchar_t* sString) const throw()
 
 bool RainString::operator== (const RainString& sOther) const throw()
 {
+  if(sOther.getCharacters() == getCharacters())
+    return true;
   if(length() != sOther.length())
     return false;
   return compare(sOther) == 0;
@@ -415,6 +431,8 @@ bool RainString::operator== (const RainString& sOther) const throw()
 
 bool RainString::operator!= (const RainString& sOther) const throw()
 {
+  if(sOther.getCharacters() == getCharacters())
+    return false;
   if(length() != sOther.length())
     return true;
   return compare(sOther) != 0;
@@ -481,31 +499,39 @@ const RainChar* RainString::getCharacters() const throw()
   return begin();
 }
 
-RainString& RainString::operator+= (const RainString& sOther) throw(...)
+RainChar* RainString::_commonAppend(size_t iLength) throw(...)
 {
   _ensureExclusiveBufferAccess();
-  if(m_pBuffer->getLengthUsed() + sOther.length() + 1 > m_pBuffer->iBufferLength)
-    m_pBuffer->upsize(m_pBuffer->iBufferLength * 2 + sOther.length() + 8);
-  std::copy(sOther.begin(), sOther.end() + 1, end());
+  if(m_pBuffer->getLengthUsed() +iLength + 1 > m_pBuffer->iBufferLength)
+    m_pBuffer->upsize(m_pBuffer->iBufferLength * 2 + iLength + 8);
+  RainChar* pReturn = end();
+  pReturn[iLength] = 0;
   if(m_pBuffer->isUsingMiniBuffer())
-    m_pBuffer->cLengthUsed += static_cast<RainChar>(sOther.length());
+    m_pBuffer->cLengthUsed += static_cast<RainChar>(iLength);
   else
-    m_pBuffer->iLengthUsed += sOther.length();
+    m_pBuffer->iLengthUsed += iLength;
+  return pReturn;
+}
+
+RainString& RainString::append(const RainString& sOther) throw(...)
+{
+  return append(sOther.getCharacters(), sOther.length());
+}
+
+RainString& RainString::append(const RainChar cCharacter) throw(...)
+{
+  *_commonAppend(1) = cCharacter;
   return *this;
+}
+
+RainString& RainString::operator+= (const RainString& sOther) throw(...)
+{
+  return append(sOther);
 }
 
 RainString& RainString::operator+= (RainChar cCharacter) throw(...)
 {
-  _ensureExclusiveBufferAccess();
-  if(m_pBuffer->getLengthUsed() + 2 > m_pBuffer->iBufferLength)
-    m_pBuffer->upsize(m_pBuffer->iBufferLength * 2 + 9);
-  m_pBuffer->getBuffer()[m_pBuffer->getLengthUsed()] = cCharacter;
-  if(m_pBuffer->isUsingMiniBuffer())
-    m_pBuffer->cLengthUsed++;
-  else
-    m_pBuffer->iLengthUsed++;
-  m_pBuffer->getBuffer()[m_pBuffer->getLengthUsed()] = 0;
-  return *this;
+  return append(cCharacter);
 }
 
 RainChar& RainString::operator[] (size_t iCharacterIndex) throw(...)
@@ -641,3 +667,23 @@ RAINMAN2_API std::wostream& operator<< (std::wostream& stream, const RainString&
 }
 
 template <> RAINMAN2_API void std::swap<RainString>(RainString& a, RainString& b) { a.swap(b); }
+
+size_t RainStrFunctions<char>::len(const char* sZeroTerminated)
+{
+  return strlen(sZeroTerminated);
+}
+
+size_t RainStrFunctions<wchar_t>::len(const wchar_t* sZeroTerminated)
+{
+  return wcslen(sZeroTerminated);
+}
+
+bool RainStrFunctions<char>::isWhitespace(const char cCharacter)
+{
+  return cCharacter == ' ' || cCharacter == '\n' || cCharacter == '\t' || cCharacter == '\r';
+}
+
+bool RainStrFunctions<wchar_t>::isWhitespace(const wchar_t cCharacter)
+{
+  return cCharacter == ' ' || cCharacter == '\n' || cCharacter == '\t' || cCharacter == '\r';
+}

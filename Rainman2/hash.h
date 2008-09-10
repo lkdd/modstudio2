@@ -31,6 +31,9 @@ public:
   virtual ~IHash() throw() = 0;
 
   virtual size_t getSizeInBytes() const throw() = 0;
+  virtual bool canUpdatesBeSplit() const throw() = 0;
+  virtual const char* getFamily() const throw() = 0;
+  virtual bool isCaseIndependant() const throw() = 0;
 
   virtual void update(const char* pBuffer, size_t iBufferLength) throw() = 0;
   virtual void updateFromFile(IFile* pFile, size_t iByteCount) throw(...);
@@ -47,6 +50,10 @@ public:
   ~MD5Hash() throw();
 
   virtual size_t getSizeInBytes() const throw(); //!< returns 16
+  virtual bool canUpdatesBeSplit() const throw(); //!< returns true
+  virtual const char* getFamily() const throw(); //!< returns "MD"
+  virtual bool isCaseIndependant() const throw(); //!< returns false
+
   virtual void update(const char* pBuffer, size_t iBufferLength) throw();
   virtual void finalise(unsigned char* pOutput) throw();
 
@@ -65,6 +72,10 @@ public:
   ~RGDHash() throw();
 
   virtual size_t getSizeInBytes() const throw(); //!< returns 4
+  virtual bool canUpdatesBeSplit() const throw(); //!< returns false
+  virtual const char* getFamily() const throw(); //!< returns "RGD"
+  virtual bool isCaseIndependant() const throw(); //!< returns false
+
   virtual void update(const char* pBuffer, size_t iBufferLength) throw();
   virtual void finalise(unsigned char* pOutput) throw();
 
@@ -81,6 +92,10 @@ public:
   ~CRCHash() throw();
 
   virtual size_t getSizeInBytes() const throw(); //!< returns 4
+  virtual bool canUpdatesBeSplit() const throw(); //!< returns true
+  virtual const char* getFamily() const throw(); //!< returns "CRC"
+  virtual bool isCaseIndependant() const throw(); //!< returns false
+
   virtual void update(const char* pBuffer, size_t iBufferLength) throw();
   virtual void finalise(unsigned char* pOutput) throw();
 
@@ -97,6 +112,10 @@ public:
   ~CRCCaselessHash() throw();
 
   virtual size_t getSizeInBytes() const throw(); //!< returns 4
+  virtual bool canUpdatesBeSplit() const throw(); //!< returns true
+  virtual const char* getFamily() const throw(); //!< returns "CRC"
+  virtual bool isCaseIndependant() const throw(); //!< returns true
+
   virtual void update(const char* pBuffer, size_t iBufferLength) throw();
   virtual void finalise(unsigned char* pOutput) throw();
 

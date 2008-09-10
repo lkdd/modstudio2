@@ -29,15 +29,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 RgdDictionary* RgdDictionary::m_pSingleton = 0;
 
-RgdDictionary::RgdDictionary()
-{
-  if(m_pSingleton == 0)
-  {
-    m_pSingleton = this;
-  }
-}
-
-RgdDictionary::~RgdDictionary()
+RgdDictionary::~RgdDictionary() throw()
 {
   for(std::map<unsigned long, _hash_entry>::iterator itr = m_mapHashes.begin(); itr != m_mapHashes.end(); ++itr)
   {
@@ -84,7 +76,7 @@ unsigned long RgdDictionary::asciiToHash(const char* sString, size_t iLength) th
   return iHash;
 }
 
-bool RgdDictionary::isHashKnown(unsigned long iHash) throw()
+bool RgdDictionary::isHashKnown(unsigned long iHash) const throw()
 {
   return m_mapHashes.count(iHash) == 1;
 }
@@ -93,17 +85,23 @@ bool RgdDictionary::isHashKnown(unsigned long iHash) throw()
   if(!isHashKnown(hash)) \
     THROW_SIMPLE_1(L"Hash not in the dictionary: %lu", static_cast<unsigned long>(hash));
 
-const char* RgdDictionary::hashToAscii(unsigned long iHash) throw(...)
+const char* RgdDictionary::hashToAscii(unsigned long iHash, size_t* pLength) throw(...)
 {
   CHECK_HASH(iHash);
-  return m_mapHashes[iHash].sString;
+  _hash_entry &oEntry = m_mapHashes[iHash];
+  if(pLength)
+    *pLength = oEntry.iLength;
+  return oEntry.sString;
 }
 
-const char* RgdDictionary::hashToAsciiNoThrow(unsigned long iHash) throw()
+const char* RgdDictionary::hashToAsciiNoThrow(unsigned long iHash, size_t* pLength) throw()
 {
   if(!isHashKnown(iHash))
-    return 0;
-  return m_mapHashes[iHash].sString;
+    return NULL;
+  const _hash_entry &oEntry = m_mapHashes[iHash];
+  if(pLength)
+    *pLength = oEntry.iLength;
+  return oEntry.sString;
 }
 
 const RainString* RgdDictionary::hashToString(unsigned long iHash) throw(...)
@@ -134,7 +132,7 @@ static void __cdecl RgdDictionarySingletonCleanup()
   delete RgdDictionary::getSingleton();
 }
 
-RgdDictionary* RgdDictionary::getSingleton()
+RgdDictionary* RgdDictionary::getSingleton() throw()
 {
   if(!m_pSingleton)
   {

@@ -32,7 +32,10 @@ public:
   FileStoreComposition() throw();
   virtual ~FileStoreComposition() throw();
 
-  void addFileStore(IFileStore *pStore, const RainString &sPrefix, int iPriority, bool bTakeOwnership) throw(...);
+  void   addFileStore    (IFileStore *pStore, const RainString &sPrefix, int iPriority, bool bTakeOwnership) throw(...);
+  size_t enableFileStore (IFileStore *pStore, bool bEnable  = true) throw(...);
+  size_t disableFileStore(IFileStore *pStore, bool bDisable = true) throw(...);
+
   void reenumerateEntryPoints() throw(...);
 
   // IFileStore interface
@@ -65,6 +68,7 @@ protected:
     int m_iPriority;
     file_store_caps_t m_oCaps;
     bool m_bOwnsPointer;
+    bool m_bEnabled;
 
     bool ensureDirectory(RainString sFullPath, bool bThrow);
   };

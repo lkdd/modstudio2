@@ -38,6 +38,18 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma warning(push)
 #pragma warning(disable: 4996)
 
+template <class T> struct RAINMAN2_API RainStrFunctions {};
+template <> struct RAINMAN2_API RainStrFunctions<char>
+{
+  static size_t len(const char* sZeroTerminated);
+  static bool isWhitespace(const char cCharacter);
+};
+template <> struct RAINMAN2_API RainStrFunctions<wchar_t>
+{
+  static size_t len(const wchar_t* sZeroTerminated);
+  static bool isWhitespace(const wchar_t cCharacter);
+};
+
 //! The character type used for Rainman strings
 typedef wchar_t RainChar;
 
@@ -69,11 +81,17 @@ public:
   //! Construct from a wxString
   RainString(wxString s) throw(...);
 
-  //! Construct from a zero-terminated array of unicode characters
-  RainString(const RainChar* sZeroTermString) throw(...);
-
-  //! Construct from a zero-terminated array of ASCII characters
-  RainString(const char* sZeroTermString) throw(...);
+  //! Construct from a zero-terminated array of characters
+  /*!
+    The first \0 character in the string is interpreted as the end of string marker.
+    Each source character is converted into one RainChar; no fancy UTF-8 translation
+    is done for 8bit characters.
+  */
+  template <class T>
+  RainString(const T* sZeroTermString) throw(...)
+  {
+    _initFromChars(sZeroTermString, sZeroTermString ? RainStrFunctions<T>::len(sZeroTermString) : 0);
+  }
 
   //! Construct from a Lua string
   /*!
@@ -88,8 +106,8 @@ public:
 
   //! Construct from an array of characters with known length
   /*!
-    Each source character is converted into one RainChar; no fancy
-    UTF-8 translation is done for 8bit characters
+    Each source character is converted into one RainChar; no fancy UTF-8 translation
+    is done for 8bit characters.
   */
   template <class T>
   RainString(const T* sString, size_t iLength) throw(...)
@@ -99,8 +117,8 @@ public:
 
   //! Construct from an array of characters with length known at compile-time
   /*!
-    Each source character is converted into one RainChar; no fancy
-    UTF-8 translation is done for 8bit characters
+    Each source character is converted into one RainChar; no fancy UTF-8 translation
+    is done for 8bit characters.
   */
   template <class T, size_t iLength>
   RainString(const T sString[iLength]) throw(...)
@@ -121,6 +139,10 @@ public:
   RainString& operator= (const RainString&) throw();
 
   operator wxString() const;
+
+  size_t indexOf(RainChar cCharacter, size_t iStartAt = 0, size_t iNotFoundValue = static_cast<size_t>(-1)) const;
+
+  RainString trimWhitespace() const throw(...);
 
   //! Obtain a substring of the string
   /*!
@@ -235,8 +257,40 @@ public:
   //! Extract a single character from the string
   RainChar operator[] (size_t iIndex) const throw(...);
 
+  RainString& append(const RainString& sOther) throw(...);
+
+  RainString& append(const RainChar cCharacter) throw(...);
+
+  template <class T>
+  RainString& append(const T* pZeroTerminated) throw(...)
+  {
+    return append(pZeroTerminated, RainStrFunctions<T>::len(pZeroTerminated));
+  }
+
+  template <class T>
+  RainString& append(const T* pString, size_t iLength) throw(...)
+  {
+    std::copy(pString, pString + iLength, _commonAppend(iLength));
+    return *this;
+  }
+
   //! Append an entire string onto the end of this one
   RainString& operator+= (const RainString& sOther) throw(...);
+
+  //! Append a single character onto the end of the string
+  /*!
+    It is generally quite inefficient to append lots of characters to
+    the end of a string compared to appending an entire string. Note
+    that adding one character at a time will not cause a new buffer to
+    be allocated each time.
+  */
+  RainString& operator+= (RainChar cCharacter) throw(...);
+
+  template <class T>
+  RainString& operator+= (const T* pZeroTerminatedString) throw(...)
+  {
+    return append(pZeroTerminatedString);
+  }
 
   //! Compare two strings for equality
   /*!
@@ -256,15 +310,6 @@ public:
     More efficient than using compare(sOther) < 0
   */
   bool operator<  (const RainString& sOther) const throw();
-
-  //! Append a single character onto the end of the string
-  /*!
-    It is generally quite inefficient to append lots of characters to
-    the end of a string compared to appending an entire string. Note
-    that adding one character at a time will not cause a new buffer to
-    be allocated each time.
-  */
-  RainString& operator+= (RainChar cCharacter) throw(...);
 
   //! Lexicographically compares this string with another
   /*!
@@ -391,6 +436,8 @@ protected:
     \return Pointer to a buffer ready to receive the specified number of characters
   */
   RainChar* _commonInit(size_t iLength);
+
+  RainChar* _commonAppend(size_t iLength) throw(...);
 
   //! Initialise the string from an array of characters with known length
   template <class T>
