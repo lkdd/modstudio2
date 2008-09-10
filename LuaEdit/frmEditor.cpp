@@ -36,13 +36,15 @@ extern "C" {
 #include "stdext.h"
 
 BEGIN_EVENT_TABLE(frmLuaEditor, wxFrame)
-  EVT_LISTBOX(LST_RECENT, frmLuaEditor::onListItemActivate)
-  EVT_TREE_ITEM_ACTIVATED(TREE_INHERIT, frmLuaEditor::onTreeItemActivate)
-  EVT_TREE_SEL_CHANGED(TREE_ATTRIB, frmLuaEditor::onAttribTreeItemActivate)
-  EVT_TREE_ITEM_EXPANDING(TREE_ATTRIB, frmLuaEditor::onAttribTreeItemExpanding)
-  EVT_STC_STYLENEEDED(TXT_CODE, frmLuaEditor::onStyleNeeded)
-  EVT_TOOL(TB_SAVELUA, frmLuaEditor::onSaveLua)
-  EVT_TOOL(TB_SAVEBIN, frmLuaEditor::onSaveBinary)
+  /* order is alphabetical based on event macro and window ID */
+  EVT_AUINOTEBOOK_PAGE_CHANGING(NB_EDITORS, frmLuaEditor::onEditorTabChange)
+  EVT_LISTBOX(LST_RECENT,                   frmLuaEditor::onListItemActivate)
+  EVT_STC_STYLENEEDED(TXT_CODE,             frmLuaEditor::onStyleNeeded)
+  EVT_TREE_ITEM_ACTIVATED(TREE_INHERIT,     frmLuaEditor::onTreeItemActivate)
+  EVT_TREE_ITEM_EXPANDING(TREE_ATTRIB,      frmLuaEditor::onAttribTreeItemExpanding)
+  EVT_TREE_SEL_CHANGED(TREE_ATTRIB,         frmLuaEditor::onAttribTreeItemActivate)
+  EVT_TOOL(TB_SAVEBIN,                      frmLuaEditor::onSaveBinary)
+  EVT_TOOL(TB_SAVELUA,                      frmLuaEditor::onSaveLua)
 END_EVENT_TABLE()
 
 class RecentLuaListData : public wxClientData
@@ -284,10 +286,7 @@ frmLuaEditor::frmLuaEditor()
   m_pRecentLuas = new wxListBox(this, LST_RECENT, wxPoint(0,0), wxSize(250,250), 0, NULL, wxLB_SINGLE | wxNO_BORDER | wxLB_HSCROLL | wxLB_NEEDED_SB);
 
   wxSize client_size = GetClientSize();
-  wxAuiNotebook *pNotebook = new wxAuiNotebook(this, wxID_ANY,
-                                    wxPoint(client_size.x, client_size.y),
-                                    wxSize(430,200),
-                                    wxAUI_NB_TAB_MOVE | wxAUI_NB_TAB_FIXED_WIDTH);
+  wxAuiNotebook *pNotebook = new wxAuiNotebook(this, NB_EDITORS, wxPoint(client_size.x, client_size.y), wxSize(430,200), wxAUI_NB_TOP | wxAUI_NB_TAB_MOVE | wxAUI_NB_TAB_FIXED_WIDTH);
 
   wxSplitterWindow *pLuaEditSplit = new wxSplitterWindow(pNotebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_3D);
   m_pAttribTree = new wxTreeCtrl(pLuaEditSplit, TREE_ATTRIB, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxNO_BORDER);
@@ -332,6 +331,63 @@ wxImage frmLuaEditor::_loadPng(wxString sName) throw(...)
     THROW_SIMPLE_1(L"Cannot load PNG resource \'%s\' from stream", sName.c_str());
 
   return oImg;
+}
+
+template <class T>
+struct array_dtor
+{
+  void operator()(T* p) const
+  {
+    delete[] p;
+  }
+};
+
+void frmLuaEditor::onEditorTabChange(wxAuiNotebookEvent &e)
+{
+  if(e.GetOldSelection() == -1) // not changing tab
+    return;
+
+  try
+  {
+    if(e.GetSelection() == 0)
+    {
+      // Code view -> Tree view
+      if(!m_pLuaCode->GetModify())
+        return;
+
+      m_pLuaProperties->Clear();
+      m_pAttribTree->DeleteAllItems();
+      wxString sCode = m_pLuaCode->GetText();
+      size_t iAsciiLength = wxConvUTF8.FromWChar(NULL, 0, sCode.c_str(), sCode.size());
+      std::tr1::shared_ptr<char> sAsciiCode(CHECK_ALLOCATION(new (std::nothrow) char[iAsciiLength]), array_dtor<char>());
+      wxConvUTF8.FromWChar(&*sAsciiCode, iAsciiLength, sCode.c_str(), sCode.size());
+      std::auto_ptr<IFile> pFile(CHECK_ALLOCATION(new (std::nothrow) MemoryReadFile(&*sAsciiCode, iAsciiLength - 1, true)));
+      try
+      {
+        m_pAttributeFile->loadFromFile(&*pFile);
+      }
+      CATCH_MESSAGE_BOX(L"Cannot switch to tree view due to invalid code", {e.Veto(); return;});
+      wxTreeItemId oRoot = m_pAttribTree->AddRoot(L"GameData", (int)VI_Table, -1, new LuaAttribTreeData(m_pAttributeFile->getGameData(), 0));
+      m_pAttribTree->SetItemHasChildren(oRoot, true);
+      m_pAttribTree->Expand(oRoot);
+      m_pAttribTree->SelectItem(oRoot);
+    }
+    else
+    {
+      // Tree view -> Code view
+      if(!m_bAttributeFileChanged)
+        return;
+
+      std::auto_ptr<MemoryWriteFile> pFile(new MemoryWriteFile);
+      m_pAttributeFile->saveToTextFile(&*pFile);
+      m_pLuaCode->ClearAll();
+      m_pLuaCode->EmptyUndoBuffer();
+      m_pLuaCode->AddText(wxString(pFile->getBuffer(), wxConvUTF8, pFile->tell()));
+      m_pLuaCode->SetSavePoint();
+    }
+    m_bAttributeFileChanged = false;
+  }
+  CATCH_MESSAGE_BOX(L"Error while changing tab", {});
 }
 
 void frmLuaEditor::onSaveLua(wxCommandEvent &e)
@@ -530,7 +586,6 @@ void frmLuaEditor::onAttribTreeItemExpanding(wxTreeEvent &e)
 
 void frmLuaEditor::_doLoadLua(IFile *pFile, RainString sPath)
 {
-  m_pLuaProperties->Clear();
   m_pLuaCode->ClearAll();
   m_pLuaProperties->Clear();
   m_pLuaCode->EmptyUndoBuffer();
@@ -549,6 +604,7 @@ void frmLuaEditor::_doLoadLua(IFile *pFile, RainString sPath)
   } while(iBytes);
 
   m_pLuaCode->SetSavePoint();
+  m_bAttributeFileChanged = false;
 
   pFile->seek(0, SR_Start);
   m_pAttributeFile = new LuaAttrib;

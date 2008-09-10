@@ -56,22 +56,25 @@ public:
 
   enum
   {
-    TREE_INHERIT = wxID_HIGHEST + 1,
-    TREE_ATTRIB,
-    LST_RECENT,
-    TXT_CODE,
+    LST_RECENT = wxID_HIGHEST + 1,
+    NB_EDITORS,
     TB_SAVELUA,
     TB_SAVEBIN,
+    TREE_INHERIT,
+    TREE_ATTRIB,
+    TXT_CODE,
   };
 
-  void onListItemActivate(wxCommandEvent &e);
-  void onTreeItemActivate(wxTreeEvent &e);
-  void onAttribTreeItemActivate(wxTreeEvent &e);
-  void onAttribTreeItemExpanding(wxTreeEvent &e);
-  void onStyleNeeded(wxStyledTextEvent &e);
-  void onResize(wxSizeEvent& e);
-  void onSaveLua(wxCommandEvent &e);
-  void onSaveBinary(wxCommandEvent &e);
+  void onAttribTreeItemActivate (wxTreeEvent        &e);
+  void onAttribTreeItemExpanding(wxTreeEvent        &e);
+  void onEditorTabChange        (wxAuiNotebookEvent &e);
+  void onListItemActivate       (wxCommandEvent     &e); 
+  void onResize                 (wxSizeEvent        &e);
+  void onSaveBinary             (wxCommandEvent     &e);
+  void onSaveLua                (wxCommandEvent     &e);
+  void onStyleNeeded            (wxStyledTextEvent  &e);
+  void onTreeItemActivate       (wxTreeEvent        &e);
+
   void setSource(IDirectory* pRootDirectory, IFileStore *pDirectoryStore) throw(...);
 
 protected:
@@ -93,6 +96,7 @@ protected:
   IDirectory *m_pRootDirectory;
   IFileStore *m_pDirectoryStore;
   LuaAttrib *m_pAttributeFile;
+  bool m_bAttributeFileChanged;
 
   DECLARE_EVENT_TABLE();
 };
