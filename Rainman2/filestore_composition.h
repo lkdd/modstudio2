@@ -32,7 +32,7 @@ public:
   FileStoreComposition() throw();
   virtual ~FileStoreComposition() throw();
 
-  void   addFileStore    (IFileStore *pStore, const RainString &sPrefix, int iPriority, bool bTakeOwnership) throw(...);
+  void   addFileStore    (IFileStore *pStore, const RainString &sPrefix, const RainString &sMountIn, int iPriority, bool bTakeOwnership) throw(...);
   size_t enableFileStore (IFileStore *pStore, bool bEnable  = true) throw(...);
   size_t disableFileStore(IFileStore *pStore, bool bDisable = true) throw(...);
 
@@ -64,13 +64,15 @@ protected:
   struct file_store_info_t
   {
     IFileStore *m_pStore;
-    RainString m_sPrefix;
+    RainString m_sPrefix,
+               m_sMountedIn;
     int m_iPriority;
     file_store_caps_t m_oCaps;
-    bool m_bOwnsPointer;
-    bool m_bEnabled;
+    bool m_bOwnsPointer,
+         m_bEnabled;
 
     bool ensureDirectory(RainString sFullPath, bool bThrow);
+    bool transformToFullPath(const RainString &sPath, RainString &sFullPath);
   };
 
   static bool _file_store_priority_sort(file_store_info_t* a, file_store_info_t* b);

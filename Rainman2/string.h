@@ -140,7 +140,9 @@ public:
 
   operator wxString() const;
 
-  size_t indexOf(RainChar cCharacter, size_t iStartAt = 0, size_t iNotFoundValue = static_cast<size_t>(-1)) const;
+  static const size_t NOT_FOUND = static_cast<size_t>(-1);
+
+  size_t indexOf(RainChar cCharacter, size_t iStartAt = 0, size_t iNotFoundValue = NOT_FOUND) const;
 
   RainString trimWhitespace() const throw(...);
 
@@ -228,6 +230,9 @@ public:
 
   //! Convert the string to upper-case
   RainString& toUpper() throw(...);
+
+  //! Creates a string which is this one repeated a number of times
+  RainString repeat(size_t iCount) const throw(...);
 
   //! Queries if the string is empty
   bool isEmpty() const throw();
