@@ -128,6 +128,86 @@ IniFile::~IniFile()
   clear();
 }
 
+IniFile::iterator::iterator() throw()
+{
+  m_pSection = 0;
+  m_pPrev = 0;
+  m_pNext = 0;
+}
+
+IniFile::iterator::iterator(const IniFile::iterator& other) throw()
+{
+  m_pSection = other.m_pSection;
+  m_pPrev = other.m_pPrev;
+  m_pNext = other.m_pNext;
+}
+
+IniFile::iterator::iterator(IniFile::iterator::value_type* pSection, IniFile::iterator::value_type* IniFile::iterator::value_type::* pPrev, IniFile::iterator::value_type* IniFile::iterator::value_type::* pNext) throw()
+{
+  m_pSection = pSection;
+  m_pPrev = pPrev;
+  m_pNext = pNext;
+}
+
+IniFile::iterator& IniFile::iterator::operator =(const IniFile::iterator& other) throw()
+{
+  m_pSection = other.m_pSection;
+  m_pPrev = other.m_pPrev;
+  m_pNext = other.m_pNext;
+  return *this;
+}
+
+IniFile::iterator& IniFile::iterator::operator ++() throw()
+{
+  m_pSection = m_pSection->*m_pNext;
+  return *this;
+}
+
+IniFile::iterator& IniFile::iterator::operator --() throw()
+{
+  m_pSection = m_pSection->*m_pPrev;
+  return *this;
+}
+
+bool IniFile::iterator::operator ==(const IniFile::iterator& other) const throw()
+{
+  return m_pSection == other.m_pSection;
+}
+
+bool IniFile::iterator::operator !=(const IniFile::iterator& other) const throw()
+{
+  return m_pSection != other.m_pSection;
+}
+
+IniFile::iterator::reference IniFile::iterator::operator *() throw()
+{
+  return *m_pSection;
+}
+
+IniFile::iterator::pointer IniFile::iterator::operator ->() throw()
+{
+  return m_pSection;
+}
+
+IniFile::iterator IniFile::begin() throw()
+{
+  return iterator(m_pFirstSection, &Section::m_pPrev, &Section::m_pNext);
+}
+
+IniFile::iterator IniFile::begin(RainString sSectionName) throw()
+{
+  map_type::iterator itr = m_mapSections.find(sSectionName);
+  if(itr == m_mapSections.end())
+    return end();
+  else
+    return iterator(itr->second, &Section::m_pPrevTwin, &Section::m_pNextTwin);
+}
+
+IniFile::iterator IniFile::end() throw()
+{
+  return iterator(0, 0, 0);
+}
+
 void IniFile::setSpecialCharacters(RainChar cCommentMarker, RainChar cNameValueDelimiter, RainChar cSectionStarter, RainChar cSectionFinisher) throw()
 {
   m_cCommentCharacter = cCommentMarker;
@@ -182,10 +262,20 @@ IniFile::Section::Section()
   m_oEmptyValue.m_pSection = this;
 }
 
-IniFile::Section::~Section()
+void IniFile::Section::clear() throw()
 {
   while(m_pFirstValue)
     delete m_pFirstValue;
+}
+
+IniFile* IniFile::Section::getFile() const throw()
+{
+  return m_pFile;
+}
+
+IniFile::Section::~Section()
+{
+  clear();
   if(m_pFile)
   {
     if(m_pFile->m_pFirstSection == this)

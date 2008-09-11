@@ -51,45 +51,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 class RAINMAN2_API IniFile
 {
 public:
-  IniFile();
-  ~IniFile();
-
-  //! Change the characters used to mark comments, sections and names/values
-  /*!
-    \param cCommentMarker The character which turns the rest of the line into a comment (usually ';' or '#')
-    \param cNameValueDelimiter The character placed between a parameter name and value  (usually '=' or ':')
-    \param cSectionStarter The character placed before a new section name (usually '[')
-    \param cSectionFinisher The character placed after a new section name (usually ']')
-  */
-  void setSpecialCharacters(RainChar cCommentMarker = ';', RainChar cNameValueDelimiter = '=', RainChar cSectionStarter = '[', RainChar cSectionFinisher = ']') throw();
-
-  //! Load an INI file from a generic file
-  /*!
-    Any data currently in the file is erased, and replaced with the data from the given file.
-    The file is interpreted as ASCII delimited with '\n' characters for newlines.
-  */
-  void load(IFile* pFile) throw(...);
-
-  //! Load an INI file from a disk file
-  /*!
-    
-  */
-  void load(RainString sFile) throw(...);
-
-  void clear() throw();
-
   class RAINMAN2_API Section
   {
   public:
-    Section();
-    ~Section();
-
-    bool operator ==(const RainString& sName) const;
-
-    operator const RainString&() const;
-    const RainString& name() const;
-    Section& setName(const RainString& sName);
-
     class RAINMAN2_API Value
     {
     public:
@@ -121,6 +85,20 @@ public:
       Section   *m_pSection;
     };
 
+    Section();
+    ~Section();
+
+    bool operator ==(const RainString& sName) const;
+
+    operator const RainString&() const;
+    const RainString& name() const;
+    Section& setName(const RainString& sName);
+
+    bool empty() const;
+    void clear() throw();
+
+    IniFile* getFile() const throw();
+
     typedef RainString key_type;
     typedef Value value_type;
     typedef std::map<key_type, value_type*> map_type;
@@ -129,8 +107,6 @@ public:
     const Value& operator[](const RainString& sKey) const;
 
     Value& appendValue(const RainString& sKey, const RainString& sValue);
-
-    bool empty() const;
 
   protected:
     friend class Value;
@@ -148,6 +124,64 @@ public:
               *m_pNextTwin;
     IniFile   *m_pFile;
   };
+
+  class RAINMAN2_API iterator
+  {
+  public:
+    //typedef std::input_iterator_tag iterator_category;
+    typedef IniFile::Section value_type;
+    typedef ptrdiff_t difference_type;
+    typedef value_type* pointer;
+    typedef value_type& reference;
+
+    iterator() throw();
+    iterator(const iterator&) throw();
+    iterator(value_type* pSection, value_type* value_type::* pPrev, value_type* value_type::* pNext) throw();
+
+    iterator& operator =  (const iterator&) throw();
+    iterator& operator ++ ()                throw();
+    iterator& operator -- ()                throw();
+    bool      operator == (const iterator&) const throw();
+    bool      operator != (const iterator&) const throw();
+    reference operator *  ()                throw();
+    pointer   operator -> ()                throw();
+
+  protected:
+    value_type* m_pSection;
+    value_type* value_type::* m_pPrev;
+    value_type* value_type::* m_pNext;
+  };
+
+  IniFile();
+  ~IniFile();
+
+  //! Change the characters used to mark comments, sections and names/values
+  /*!
+    \param cCommentMarker The character which turns the rest of the line into a comment (usually ';' or '#')
+    \param cNameValueDelimiter The character placed between a parameter name and value  (usually '=' or ':')
+    \param cSectionStarter The character placed before a new section name (usually '[')
+    \param cSectionFinisher The character placed after a new section name (usually ']')
+  */
+  void setSpecialCharacters(RainChar cCommentMarker = ';', RainChar cNameValueDelimiter = '=', RainChar cSectionStarter = '[', RainChar cSectionFinisher = ']') throw();
+
+  //! Load an INI file from a generic file
+  /*!
+    Any data currently in the file is erased, and replaced with the data from the given file.
+    The file is interpreted as ASCII delimited with '\n' characters for newlines.
+  */
+  void load(IFile* pFile) throw(...);
+
+  //! Load an INI file from a disk file
+  /*!
+    
+  */
+  void load(RainString sFile) throw(...);
+
+  iterator begin() throw();
+  iterator begin(RainString sSectionName) throw();
+  iterator end() throw();
+
+  void clear() throw();
 
   typedef RainString key_type;
   typedef Section value_type;

@@ -312,6 +312,19 @@ RainString& RainString::toUpper() throw(...)
   return *this;
 }
 
+RainString RainString::repeat(size_t iCount) const throw(...)
+{
+  size_t iLength = iCount * length();
+
+  RainString sNew(*this);
+  sNew.m_pBuffer->upsize(iLength + 1);
+  while(sNew.length() < iLength)
+  {
+    sNew.append(sNew.getCharacters(), std::min(sNew.length(), iLength - sNew.length()));
+  }
+  return sNew;
+}
+
 size_t RainString::indexOf(RainChar cCharacter, size_t iStartAt, size_t iNotFoundValue) const
 {
   const_iterator begin = this->begin() + iStartAt, end = this->end();
