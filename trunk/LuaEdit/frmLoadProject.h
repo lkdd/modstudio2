@@ -36,20 +36,10 @@ OTHER DEALINGS IN THE SOFTWARE.
     #include "wx/wx.h"
 #endif
 // ----------------------------
+#include <wx/combobox.h>
+#include <wx/listctrl.h>
 #include <Rainman2.h>
 #include <vector>
-
-class IRecentLoadSource
-{
-public:
-  virtual ~IRecentLoadSource();
-
-  virtual RainString getSourceType() = 0;
-  virtual RainString getDisplayText() = 0;
-  virtual RainString getSaveText() = 0;
-  virtual void performLoad(IDirectory **ppDirectory, IFileStore **pFileStore) = 0;
-  virtual bool isSameAs(IRecentLoadSource* pOtherSource) = 0;
-};
 
 class frmLoadProject : public wxFrame
 {
@@ -59,33 +49,36 @@ public:
 
   enum
   {
-    BTN_LOAD_PIPELINE = wxID_HIGHEST + 1,
-    BTN_LOAD_MODULE_WA,
-    BTN_LOAD_MODULE_DC,
-    BTN_LOAD_MODULE_SS,
-    BTN_LOAD_MODULE_OF,
-    BTN_LOAD_FOLDER,
-    LST_LOAD_RECENT,
-    BMP_DONATE,
+    BMP_DONATE = wxID_HIGHEST + 1,
+    BTN_BROWSE_PIPELINE,
+    CMB_PIPELINE_FILES,
+    LST_PIPELINE_PROJECTS,
+    BTN_LOAD,
   };
 
-  void onResize(wxSizeEvent& e);
+  void onBrowse(wxCommandEvent& e);
   void onDonate(wxCommandEvent& e);
-  void onQuit(wxCommandEvent& e);
-  void onLoadFolder(wxCommandEvent& e);
-  void onLoadRecent(wxCommandEvent& e);
+  void onLoad  (wxCommandEvent& e);
+  void onPipelineProjectSelected (wxListEvent &e);
+  void onPipelineProjectActivated(wxListEvent &e);
+  void onPipelineProjectsSort    (wxListEvent &e);
+  void onQuit  (wxCommandEvent& e);
+  void onResize(wxSizeEvent   & e);
 
 protected:
-  void _loadRecentList();
-  void _saveRecentList();
-  void _addNewRecentSource(IRecentLoadSource* pRecentSource);
+  void _refreshProjectList();
+  void _adjustProjectListItemFont(long iIndex, wxFont (*fnAdjust)(wxFont));
+  void _loadEditor(IniFile::Section* pPipelineSection);
   void _loadEditor(IDirectory *pDirectory, IFileStore *pFileStore);
-  void _loadFromRecent(IRecentLoadSource* pRecentSource);
 
-  std::vector<IRecentLoadSource*> m_vRecentSources;
-  wxStaticText* m_pText;
-  wxListBox* m_pRecentList;
-  wxString m_sText;
+  IniFile m_oPipelineFile;
+  wxComboBox* m_pPipelineFileList;
+  wxListCtrl* m_pPipelineProjects;
+  wxButton* m_pLoadButton,
+          * m_pNewButton;
+  bool m_bCanLoad;
+  long m_iLastColumnSort,
+       m_iSelectedProject;
   DECLARE_EVENT_TABLE();
 };
 
