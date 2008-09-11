@@ -361,7 +361,7 @@ void frmLuaEditor::onEditorTabChange(wxAuiNotebookEvent &e)
       size_t iAsciiLength = wxConvUTF8.FromWChar(NULL, 0, sCode.c_str(), sCode.size());
       std::tr1::shared_ptr<char> sAsciiCode(CHECK_ALLOCATION(new (std::nothrow) char[iAsciiLength]), array_dtor<char>());
       wxConvUTF8.FromWChar(&*sAsciiCode, iAsciiLength, sCode.c_str(), sCode.size());
-      std::auto_ptr<IFile> pFile(CHECK_ALLOCATION(new (std::nothrow) MemoryReadFile(&*sAsciiCode, iAsciiLength - 1, true)));
+      std::auto_ptr<IFile> pFile(CHECK_ALLOCATION(new (std::nothrow) MemoryReadFile(&*sAsciiCode, iAsciiLength - 1, false)));
       try
       {
         m_pAttributeFile->loadFromFile(&*pFile);
@@ -708,8 +708,8 @@ void frmLuaEditor::setSource(IDirectory* pRootDirectory, IFileStore *pDirectoryS
   CHECK_ASSERT(m_pRootDirectory == 0);
 
   FileStoreComposition *pComposition = CHECK_ALLOCATION(new (std::nothrow) FileStoreComposition);
-  pComposition->addFileStore(new ReadOnlyFileStoreAdaptor(pDirectoryStore), L"", 10, true);
-  pComposition->addFileStore(new MemoryFileStore, L"", 20, true);
+  pComposition->addFileStore(new ReadOnlyFileStoreAdaptor(pDirectoryStore), L"", L"", 10, true);
+  pComposition->addFileStore(new MemoryFileStore, L"", L"", 20, true);
 
   m_pDirectoryStore = pComposition;
   m_pRootDirectory = pComposition->openDirectory(pRootDirectory->getPath());
