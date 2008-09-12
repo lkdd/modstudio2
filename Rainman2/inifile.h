@@ -70,6 +70,7 @@ public:
       Value& setValue(const RainString& sValue);
       const RainString& key() const;
       Value& setKey(const RainString& sKey);
+      const RainString& comment() const;
 
     protected:
       friend class IniFile;
@@ -85,14 +86,46 @@ public:
       Section   *m_pSection;
     };
 
+    class RAINMAN2_API iterator
+    {
+    public:
+      typedef IniFile::Section::Value value_type;
+      typedef ptrdiff_t difference_type;
+      typedef value_type* pointer;
+      typedef value_type& reference;
+
+      iterator() throw();
+      iterator(const iterator&) throw();
+      iterator(value_type* pValue, value_type* value_type::* pPrev, value_type* value_type::* pNext) throw();
+
+      iterator& operator =  (const iterator&) throw();
+      iterator& operator ++ ()                throw();
+      iterator& operator -- ()                throw();
+      bool      operator == (const iterator&) const throw();
+      bool      operator != (const iterator&) const throw();
+      reference operator *  ()                throw();
+      pointer   operator -> ()                throw();
+
+    protected:
+      value_type* m_pValue;
+      value_type* value_type::* m_pPrev;
+      value_type* value_type::* m_pNext;
+    };
+
     Section();
     ~Section();
+
+    iterator begin() throw();
+    iterator begin(RainString sValueName) throw();
+    iterator end() throw();
 
     bool operator ==(const RainString& sName) const;
 
     operator const RainString&() const;
     const RainString& name() const;
     Section& setName(const RainString& sName);
+
+    const RainString& comment() const;
 
     bool empty() const;
     void clear() throw();
@@ -128,7 +161,6 @@ public:
   class RAINMAN2_API iterator
   {
   public:
-    //typedef std::input_iterator_tag iterator_category;
     typedef IniFile::Section value_type;
     typedef ptrdiff_t difference_type;
     typedef value_type* pointer;
@@ -155,6 +187,8 @@ public:
   IniFile();
   ~IniFile();
 
+  const RainString& comment() const;
+
   //! Change the characters used to mark comments, sections and names/values
   /*!
     \param cCommentMarker The character which turns the rest of the line into a comment (usually ';' or '#')
@@ -176,6 +210,9 @@ public:
     
   */
   void load(RainString sFile) throw(...);
+
+  void save(IFile* pFile) throw(...);
+  void save(RainString sFile) throw(...);
 
   iterator begin() throw();
   iterator begin(RainString sSectionName) throw();

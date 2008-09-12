@@ -136,6 +136,17 @@ public:
     }
   }
 
+  template <typename TConvertor>
+  void writeConverting(const RainString& str, TConvertor fnConvertor)
+  {
+    writeConverting(str.getCharacters(), str.length(), fnConvertor);
+  }
+
+  void write(TChar cCharacter) throw(...)
+  {
+    write(&cCharacter, 1);
+  }
+
   void write(const TChar* pBuffer, size_t iLength) throw(...)
   {
     // Append as much as possible to the buffer
