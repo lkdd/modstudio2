@@ -59,9 +59,12 @@ public:
   void onBrowse(wxCommandEvent& e);
   void onDonate(wxCommandEvent& e);
   void onLoad  (wxCommandEvent& e);
-  void onPipelineProjectSelected (wxListEvent &e);
-  void onPipelineProjectActivated(wxListEvent &e);
-  void onPipelineProjectsSort    (wxListEvent &e);
+  void onNew   (wxCommandEvent& e);
+  void onPipelineFilesSelect     (wxCommandEvent& e);
+  void onPipelineFilesCharacter  (wxCommandEvent& e);
+  void onPipelineProjectSelected (wxListEvent   & e);
+  void onPipelineProjectActivated(wxListEvent   & e);
+  void onPipelineProjectsSort    (wxListEvent   & e);
   void onQuit  (wxCommandEvent& e);
   void onResize(wxSizeEvent   & e);
 

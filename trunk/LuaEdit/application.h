@@ -36,10 +36,15 @@ OTHER DEALINGS IN THE SOFTWARE.
     #include "wx/wx.h"
 #endif
 // ----------------------------
+#include <Rainman2.h>
 
 class LuaEditApp : public wxApp
 {
+public:
 	virtual bool OnInit();
+  virtual int OnExit();
+
+  static IniFile Config;
 };
 
 DECLARE_APP(LuaEditApp)

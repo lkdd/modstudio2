@@ -25,6 +25,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "frmEditor.h"
 #include "InheritanceBuilder.h"
 #include "utility.h"
+#include "application.h"
 #include <wx/statusbr.h>
 extern "C" {
 #include <lua.h>
@@ -309,6 +310,10 @@ frmLuaEditor::frmLuaEditor()
   _initToolbar();
 
   m_oManager.Update();
+
+  wxString sPerspective = LuaEditApp::Config[L"editor"][L"aui_perspective"].value();
+  if(!sPerspective.IsEmpty())
+    m_oManager.LoadPerspective(sPerspective, true);
 }
 
 wxImage frmLuaEditor::_loadPng(wxString sName) throw(...)
@@ -753,5 +758,10 @@ frmLuaEditor::~frmLuaEditor()
   delete m_pRootDirectory;
   delete m_pDirectoryStore;
   delete m_pAttributeFile;
+  RainString sPerspective = m_oManager.SavePerspective();
+  if(sPerspective.indexOf('\n') == RainString::NOT_FOUND && sPerspective.indexOf('#') == RainString::NOT_FOUND)
+    LuaEditApp::Config[L"editor"][L"aui_perspective"] = sPerspective;
+  else
+    ::wxMessageBox(L"Cannot save AUI perspective, please inform programmer");
   m_oManager.UnInit();
 }

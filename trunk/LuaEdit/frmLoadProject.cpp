@@ -25,6 +25,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "frmLoadProject.h"
 #include "frmEditor.h"
 #include "utility.h"
+#include "application.h"
 #include <wx/dirdlg.h>
 #include <wx/utils.h>
 
@@ -33,11 +34,15 @@ BEGIN_EVENT_TABLE(frmLoadProject, wxFrame)
   EVT_BUTTON              (BTN_BROWSE_PIPELINE  , frmLoadProject::onBrowse                  )
   EVT_BUTTON              (BTN_LOAD             , frmLoadProject::onLoad                    )
   EVT_BUTTON              (wxID_CLOSE           , frmLoadProject::onQuit                    )
+  EVT_BUTTON              (wxID_NEW             , frmLoadProject::onNew                     )
+  EVT_COMBOBOX            (CMB_PIPELINE_FILES   , frmLoadProject::onPipelineFilesSelect     )
   EVT_LIST_COL_CLICK      (LST_PIPELINE_PROJECTS, frmLoadProject::onPipelineProjectsSort    )
   EVT_LIST_ITEM_ACTIVATED (LST_PIPELINE_PROJECTS, frmLoadProject::onPipelineProjectActivated)
   EVT_LIST_ITEM_DESELECTED(LST_PIPELINE_PROJECTS, frmLoadProject::onPipelineProjectSelected )
   EVT_LIST_ITEM_SELECTED  (LST_PIPELINE_PROJECTS, frmLoadProject::onPipelineProjectSelected )
   EVT_SIZE                (                       frmLoadProject::onResize                  )
+  EVT_TEXT                (CMB_PIPELINE_FILES   , frmLoadProject::onPipelineFilesSelect     )
+  EVT_TEXT_ENTER          (CMB_PIPELINE_FILES   , frmLoadProject::onPipelineFilesSelect     )
 END_EVENT_TABLE()
 
 frmLoadProject::frmLoadProject()
@@ -61,7 +66,7 @@ frmLoadProject::frmLoadProject()
   bmpDonate.SetMask(new wxMask(bmpDonate, wxColour(255,0,255)));
   pButtonSizer->Add(new wxBitmapButton(this, BMP_DONATE, bmpDonate, wxDefaultPosition, wxDefaultSize, 0), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
   pButtonSizer->AddStretchSpacer(1);
-  pButtonSizer->Add(m_pNewButton = new wxButton(this, BTN_LOAD, L"&New"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
+  pButtonSizer->Add(m_pNewButton = new wxButton(this, wxID_NEW, L"&New"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
   pButtonSizer->Add(m_pLoadButton = new wxButton(this, BTN_LOAD, L"&Load"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
   pButtonSizer->Add(new wxButton(this, wxID_CLOSE, L"&Quit"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
   pTopSizer->Add(pButtonSizer, 0, wxALL | wxEXPAND, 0);
@@ -79,16 +84,37 @@ frmLoadProject::frmLoadProject()
   m_pPipelineProjects->SetColumnWidth(0, m_pPipelineProjects->GetColumnWidth(0) * 2);
   m_pPipelineProjects->SetColumnWidth(1, m_pPipelineProjects->GetClientSize().GetWidth() - m_pPipelineProjects->GetColumnWidth(0));
 
+  for(IniFile::Section::iterator itr = LuaEditApp::Config[L"pipelines"].begin(L"pipeline"), end = LuaEditApp::Config[L"pipelines"].end(); itr != end; ++itr)
+  {
+    m_pPipelineFileList->Append(itr->value());
+  }
+  if(m_pPipelineFileList->GetCount() > 0)
+    m_pPipelineFileList->Select(0);
   _refreshProjectList();
 }
 
 frmLoadProject::~frmLoadProject()
 {
+  IniFile::Section& oPipelines = LuaEditApp::Config[L"pipelines"];
+  oPipelines.clear();
+  wxString sValue = m_pPipelineFileList->GetValue();
+  oPipelines.appendValue(L"pipeline", sValue);
+  for(unsigned int i = 0; i < m_pPipelineFileList->GetCount(); ++i)
+  {
+    wxString sString = m_pPipelineFileList->GetString(i);
+    if(sString != sValue)
+      oPipelines.appendValue(L"pipeline", sString);
+  }
 }
 
 void frmLoadProject::onResize(wxSizeEvent& e)
 {
   Layout();
+}
+
+void frmLoadProject::onPipelineFilesSelect(wxCommandEvent& e)
+{
+  _refreshProjectList();
 }
 
 void frmLoadProject::onBrowse(wxCommandEvent& e)
@@ -145,6 +171,11 @@ void frmLoadProject::onPipelineProjectActivated(wxListEvent &e)
 void frmLoadProject::onLoad(wxCommandEvent &e)
 {
   _loadEditor(reinterpret_cast<IniFile::Section*>(m_pPipelineProjects->GetItemData(m_iSelectedProject)));
+}
+
+void frmLoadProject::onNew(wxCommandEvent& e)
+{
+  ::wxMessageBox(L"Not implemented yet, sorry", L"New Pipeline Project", wxOK | wxCENTER | wxICON_ERROR, this);
 }
 
 static int wxCALLBACK ColumnAlphaSort(IniFile::Section *pProject1, IniFile::Section *pProject2, std::pair<long, bool>* pData)
@@ -300,7 +331,7 @@ void frmLoadProject::_refreshProjectList()
     if(wcsncmp(itr->name().getCharacters(), L"project:", 8) == 0)
     {
       m_pPipelineProjects->InsertItem(iProjectIndex, itr->name().afterFirst(':'));
-      m_pPipelineProjects->SetItem(iProjectIndex, 1, (*itr)["Description"].value());
+      m_pPipelineProjects->SetItem(iProjectIndex, 1, (*itr)[L"Description"].value());
       m_pPipelineProjects->SetItemData(iProjectIndex, reinterpret_cast<long>(&*itr));
       ++iProjectIndex;
     }
@@ -309,5 +340,12 @@ void frmLoadProject::_refreshProjectList()
   if(iProjectIndex > 0)
   {
     m_bCanLoad = true;
+  }
+  else
+  {
+    m_pPipelineProjects->InsertItem(0, L"none");
+    m_pPipelineProjects->SetItem(0, 1, L"No pipeline projects in file");
+    m_pPipelineProjects->SetItemData(0, 0);
+    _adjustProjectListItemFont(0, MakeFontBold);
   }
 }
