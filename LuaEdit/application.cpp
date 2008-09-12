@@ -28,10 +28,22 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 IMPLEMENT_APP(LuaEditApp)
 
+IniFile LuaEditApp::Config;
+
 bool LuaEditApp::OnInit()
 {
 	wxSystemOptions::SetOption(wxT("msw.remap"), 0);
   wxInitAllImageHandlers();
+
+  try
+  {
+    Config.setSpecialCharacters('#');
+    if(RainDoesFileExist(L"lua_edit_config.ini"))
+      Config.load(L"lua_edit_config.ini");
+    else
+      Config.clear();
+  }
+  CATCH_MESSAGE_BOX(L"Cannot load config", {});
 
   try
   {
@@ -44,4 +56,15 @@ bool LuaEditApp::OnInit()
   SetTopWindow(pForm);
 
   return TRUE;
+}
+
+int LuaEditApp::OnExit()
+{
+  try
+  {
+    Config.save(L"lua_edit_config.ini");
+  }
+  CATCH_MESSAGE_BOX(L"Cannot save config", {});
+
+  return wxApp::OnExit();
 }
