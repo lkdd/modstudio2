@@ -135,6 +135,13 @@ IniFile::iterator::iterator() throw()
   m_pNext = 0;
 }
 
+IniFile::Section::iterator::iterator() throw()
+{
+  m_pValue = 0;
+  m_pPrev = 0;
+  m_pNext = 0;
+}
+
 IniFile::iterator::iterator(const IniFile::iterator& other) throw()
 {
   m_pSection = other.m_pSection;
@@ -142,9 +149,23 @@ IniFile::iterator::iterator(const IniFile::iterator& other) throw()
   m_pNext = other.m_pNext;
 }
 
+IniFile::Section::iterator::iterator(const IniFile::Section::iterator& other) throw()
+{
+  m_pValue = other.m_pValue;
+  m_pPrev = other.m_pPrev;
+  m_pNext = other.m_pNext;
+}
+
 IniFile::iterator::iterator(IniFile::iterator::value_type* pSection, IniFile::iterator::value_type* IniFile::iterator::value_type::* pPrev, IniFile::iterator::value_type* IniFile::iterator::value_type::* pNext) throw()
 {
   m_pSection = pSection;
+  m_pPrev = pPrev;
+  m_pNext = pNext;
+}
+
+IniFile::Section::iterator::iterator(IniFile::Section::iterator::value_type* pValue, IniFile::Section::iterator::value_type* IniFile::Section::iterator::value_type::* pPrev, IniFile::Section::iterator::value_type* IniFile::Section::iterator::value_type::* pNext) throw()
+{
+  m_pValue = pValue;
   m_pPrev = pPrev;
   m_pNext = pNext;
 }
@@ -157,9 +178,23 @@ IniFile::iterator& IniFile::iterator::operator =(const IniFile::iterator& other)
   return *this;
 }
 
+IniFile::Section::iterator& IniFile::Section::iterator::operator =(const IniFile::Section::iterator& other) throw()
+{
+  m_pValue = other.m_pValue;
+  m_pPrev = other.m_pPrev;
+  m_pNext = other.m_pNext;
+  return *this;
+}
+
 IniFile::iterator& IniFile::iterator::operator ++() throw()
 {
   m_pSection = m_pSection->*m_pNext;
+  return *this;
+}
+
+IniFile::Section::iterator& IniFile::Section::iterator::operator ++() throw()
+{
+  m_pValue = m_pValue->*m_pNext;
   return *this;
 }
 
@@ -169,9 +204,20 @@ IniFile::iterator& IniFile::iterator::operator --() throw()
   return *this;
 }
 
+IniFile::Section::iterator& IniFile::Section::iterator::operator --() throw()
+{
+  m_pValue = m_pValue->*m_pPrev;
+  return *this;
+}
+
 bool IniFile::iterator::operator ==(const IniFile::iterator& other) const throw()
 {
   return m_pSection == other.m_pSection;
+}
+
+bool IniFile::Section::iterator::operator ==(const IniFile::Section::iterator& other) const throw()
+{
+  return m_pValue == other.m_pValue;
 }
 
 bool IniFile::iterator::operator !=(const IniFile::iterator& other) const throw()
@@ -179,9 +225,19 @@ bool IniFile::iterator::operator !=(const IniFile::iterator& other) const throw(
   return m_pSection != other.m_pSection;
 }
 
+bool IniFile::Section::iterator::operator !=(const IniFile::Section::iterator& other) const throw()
+{
+  return m_pValue != other.m_pValue;
+}
+
 IniFile::iterator::reference IniFile::iterator::operator *() throw()
 {
   return *m_pSection;
+}
+
+IniFile::Section::iterator::reference IniFile::Section::iterator::operator *() throw()
+{
+  return *m_pValue;
 }
 
 IniFile::iterator::pointer IniFile::iterator::operator ->() throw()
@@ -189,9 +245,19 @@ IniFile::iterator::pointer IniFile::iterator::operator ->() throw()
   return m_pSection;
 }
 
+IniFile::Section::iterator::pointer IniFile::Section::iterator::operator ->() throw()
+{
+  return m_pValue;
+}
+
 IniFile::iterator IniFile::begin() throw()
 {
   return iterator(m_pFirstSection, &Section::m_pPrev, &Section::m_pNext);
+}
+
+IniFile::Section::iterator IniFile::Section::begin() throw()
+{
+  return iterator(m_pFirstValue, &Value::m_pPrev, &Value::m_pNext);
 }
 
 IniFile::iterator IniFile::begin(RainString sSectionName) throw()
@@ -203,7 +269,21 @@ IniFile::iterator IniFile::begin(RainString sSectionName) throw()
     return iterator(itr->second, &Section::m_pPrevTwin, &Section::m_pNextTwin);
 }
 
+IniFile::Section::iterator IniFile::Section::begin(RainString sValueName) throw()
+{
+  map_type::iterator itr = m_mapValues.find(sValueName);
+  if(itr == m_mapValues.end())
+    return end();
+  else
+    return iterator(itr->second, &Value::m_pPrevTwin, &Value::m_pNextTwin);
+}
+
 IniFile::iterator IniFile::end() throw()
+{
+  return iterator(0, 0, 0);
+}
+
+IniFile::Section::iterator IniFile::Section::end() throw()
 {
   return iterator(0, 0, 0);
 }
@@ -424,6 +504,52 @@ void IniFile::load(RainString sFile) throw(...)
   delete pFile;
 }
 
+static char RainCharToChar(RainChar c)
+{
+  return c & ~0xFF ? '?' : static_cast<char>(c);
+}
+
+void IniFile::save(IFile* pFile) throw(...)
+{
+  BufferingOutputStream<char> oOutput(pFile);
+  oOutput.writeConverting(m_sComment, RainCharToChar);
+  for(iterator itr_s = begin(), end_s = end(); itr_s != end_s; ++itr_s)
+  {
+    oOutput.write(m_cSectionStartCharacter);
+    oOutput.writeConverting(itr_s->name(), RainCharToChar);
+    oOutput.write(m_cSectionEndCharacter);
+    if(itr_s->comment().isEmpty())
+      oOutput.writeConverting(L"\r\n", 2, RainCharToChar);
+    else
+      oOutput.writeConverting(itr_s->comment(), RainCharToChar);
+
+    for(Section::iterator itr_v = itr_s->begin(), end_v = itr_s->end(); itr_v != end_v; ++itr_v)
+    {
+      oOutput.writeConverting(itr_v->key(), RainCharToChar);
+      oOutput.write(' ');
+      oOutput.write(m_cAssignmentCharacter);
+      oOutput.write(' ');
+      oOutput.writeConverting(itr_v->value(), RainCharToChar);
+      if(itr_v->comment().isEmpty())
+        oOutput.writeConverting(L"\r\n", 2, RainCharToChar);
+      else
+        oOutput.writeConverting(itr_v->comment(), RainCharToChar);
+    }
+  }
+}
+
+void IniFile::save(RainString sFile) throw(...)
+{
+  IFile* pFile = 0;
+  try
+  {
+    pFile = RainOpenFile(sFile, FM_Write);
+    save(pFile);
+  }
+  CATCH_THROW_SIMPLE_1(L"Cannot save INI file \'%s\'", sFile.getCharacters(), {delete pFile;});
+  delete pFile;
+}
+
 IniFile::Section& IniFile::appendSection(const RainString& sSection)
 {
   Section *pNewSection = new Section;
@@ -475,6 +601,21 @@ IniFile::Section::operator const RainString&() const
 const RainString& IniFile::Section::name() const
 {
   return m_sName;
+}
+
+const RainString& IniFile::comment() const
+{
+  return m_sComment;
+}
+
+const RainString& IniFile::Section::comment() const
+{
+  return m_sComment;
+}
+
+const RainString& IniFile::Section::Value::comment() const
+{
+  return m_sComment;
 }
 
 bool IniFile::Section::operator ==(const RainString& sName) const
