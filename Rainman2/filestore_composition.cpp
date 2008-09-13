@@ -69,7 +69,7 @@ void FileStoreComposition::addFileStore(IFileStore *pStore, const RainString &sP
     pInfo->m_sMountedIn = sMountIn + L"\\";
   pInfo->m_iPriority = iPriority;
   pStore->getCaps(pInfo->m_oCaps);
-  pInfo->m_bOwnsPointer = bTakeOwnership;
+  pInfo->m_bOwnsPointer = false;
   pInfo->m_bEnabled = true;
   m_vFileStores.push_back(pInfo);
   std::sort(m_vFileStores.begin(), m_vFileStores.end(), _file_store_priority_sort);
@@ -82,6 +82,8 @@ void FileStoreComposition::addFileStore(IFileStore *pStore, const RainString &sP
     delete pInfo;
     m_vFileStores.erase(std::find(m_vFileStores.begin(), m_vFileStores.end(), pInfo));
   });
+
+  pInfo->m_bOwnsPointer = bTakeOwnership;
 }
 
 size_t FileStoreComposition::enableFileStore(IFileStore *pStore, bool bEnable) throw(...)
