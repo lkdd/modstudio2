@@ -204,7 +204,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\frmNewProject.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\InheritanceBuilder.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\TreeCtrlMemory.cpp"
 				>
 			</File>
 			<File
@@ -234,6 +242,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\frmNewProject.h"
+				>
+			</File>
+			<File
 				RelativePath=".\InheritanceBuilder.h"
 				>
 			</File>
@@ -243,6 +255,10 @@
 			</File>
 			<File
 				RelativePath=".\stdext.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TreeCtrlMemory.h"
 				>
 			</File>
 			<File

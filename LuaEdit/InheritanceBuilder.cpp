@@ -129,7 +129,10 @@ void InheritanceBuilder::_recurse(IDirectory* pDirectory, RainString sPath) thro
   for(IDirectory::iterator itr = pDirectory->begin(); itr != pDirectory->end(); ++itr)
   {
     if(pProgress)
+    {
       pProgress->Update(static_cast<int>(itr->getIndex()), wxString(L"Loading folder: ") + implicit_cast<wxString>(itr->name()));
+      ::wxSafeYield();
+    }
     if(itr->isDirectory())
     {
       IDirectory *pChild = 0;

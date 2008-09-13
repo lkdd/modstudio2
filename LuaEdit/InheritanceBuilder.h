@@ -41,6 +41,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <vector>
 #include <map>
 #include "CustomLuaAlloc.h"
+#include "TreeCtrlMemory.h"
 
 struct lua_State;
 struct Proto;
@@ -48,7 +49,17 @@ struct Proto;
 class InheritTreeItemData : public wxTreeItemData
 {
 public:
+  InheritTreeItemData()
+    : pRememberedState(0)
+  {}
+
+  virtual ~InheritTreeItemData()
+  {
+    delete pRememberedState;
+  }
+
   RainString sPath;
+  ITreeCtrlMemory *pRememberedState;
 };
 
 class InheritanceBuilder

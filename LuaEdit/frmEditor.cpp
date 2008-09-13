@@ -34,6 +34,7 @@ extern "C" {
 #include <wx/splitter.h>
 #include <wx/utils.h>
 #include <wx/mstream.h>
+#include "TreeCtrlMemory.h"
 #include "stdext.h"
 
 BEGIN_EVENT_TABLE(frmLuaEditor, wxFrame)
@@ -360,7 +361,10 @@ void frmLuaEditor::onEditorTabChange(wxAuiNotebookEvent &e)
       if(!m_pLuaCode->GetModify())
         return;
 
+      std::auto_ptr<ITreeCtrlMemory> pTreeMemory(CreateTreeCtrlMemory());
+
       m_pLuaProperties->Clear();
+      pTreeMemory->store(m_pAttribTree);
       m_pAttribTree->DeleteAllItems();
       wxString sCode = m_pLuaCode->GetText();
       size_t iAsciiLength = wxConvUTF8.FromWChar(NULL, 0, sCode.c_str(), sCode.size());
@@ -376,6 +380,7 @@ void frmLuaEditor::onEditorTabChange(wxAuiNotebookEvent &e)
       m_pAttribTree->SetItemHasChildren(oRoot, true);
       m_pAttribTree->Expand(oRoot);
       m_pAttribTree->SelectItem(oRoot);
+      pTreeMemory->retrieve(m_pAttribTree);
     }
     else
     {
@@ -466,9 +471,19 @@ void frmLuaEditor::onListItemActivate(wxCommandEvent &e)
 
 void frmLuaEditor::onTreeItemActivate(wxTreeEvent &e)
 {
+  if(m_oCurrentAttribTreeItem.IsOk())
+  {
+    InheritTreeItemData* pData = reinterpret_cast<InheritTreeItemData*>(m_pInheritanceTree->GetItemData(m_oCurrentAttribTreeItem));
+    if(pData->pRememberedState == 0)
+      pData->pRememberedState = CreateTreeCtrlMemory();
+    pData->pRememberedState->store(m_pAttribTree);
+  }
+
   wxTreeItemId oItem = e.GetItem();
   if(oItem.IsOk())
   {
+    m_oCurrentAttribTreeItem = oItem;
+
     InheritTreeItemData* pData = reinterpret_cast<InheritTreeItemData*>(m_pInheritanceTree->GetItemData(oItem));
     if(pData)
     {
@@ -503,11 +518,16 @@ void frmLuaEditor::onTreeItemActivate(wxTreeEvent &e)
       m_pLuaProperties->Thaw();
       delete pFile;
 
+      if(pData->pRememberedState)
+        pData->pRememberedState->retrieve(m_pAttribTree);
+
       m_pInheritanceTree->SetItemBold(oItem, true);
       if(m_pRecentLuas->GetCount() >= 2)
       {
         m_pInheritanceTree->SetItemBold(reinterpret_cast<RecentLuaListData*>(m_pRecentLuas->GetClientObject(1))->oTreeItem, false);
       }
+
+      m_pAttribTree->SetFocus();
     }
   }
 }

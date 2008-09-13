@@ -224,13 +224,40 @@ void frmLoadProject::_loadEditor(IniFile::Section* pPipelineSection)
   std::auto_ptr<FileStoreComposition> pComposition(new FileStoreComposition);
 
   int iPriority = 1000;
+  IFileStore *pStoreToUse = RainGetFileSystemStore(), *pReadOnly = 0;
+  bool bNextOwnershipOfStore = false;
   while(pPipelineSection)
   {
     RainString sGeneric = (*pPipelineSection)["DataGeneric"];
     if(!sGeneric.isEmpty())
     {
-      pComposition->addFileStore(RainGetFileSystemStore(), sRootFolder + sGeneric, L"Generic", iPriority--, false);
+      try
+      {
+        pComposition->addFileStore(pStoreToUse, sRootFolder + sGeneric, L"Generic", iPriority--, bNextOwnershipOfStore);
+        bNextOwnershipOfStore = false;
+      }
+      CATCH_MESSAGE_BOX_1(L"Cannot load %s (cannot mount DataGeneric)", pPipelineSection->name().getCharacters(), {
+        if(bNextOwnershipOfStore)
+          delete pStoreToUse;
+        return;
+      });
     }
+
+    RainString sData = (*pPipelineSection)["DataFinal"];
+    if(pReadOnly == 0 && !sData.isEmpty())
+    {
+      try
+      {
+        pComposition->addFileStore(pStoreToUse, sRootFolder + sData, L"DataRGD", iPriority--, bNextOwnershipOfStore);
+        bNextOwnershipOfStore = false;
+      }
+      CATCH_MESSAGE_BOX_1(L"Cannot load %s (cannot mount DataFinal)", pPipelineSection->name().getCharacters(), {
+        if(bNextOwnershipOfStore)
+          delete pStoreToUse;
+        return;
+      });
+    }
+
     RainString sParent = (*pPipelineSection)["Parent"];
     if(sParent.isEmpty())
       pPipelineSection = 0;
@@ -248,7 +275,16 @@ void frmLoadProject::_loadEditor(IniFile::Section* pPipelineSection)
         }
       }
     }
+
+    if(pReadOnly == 0)
+    {
+      pReadOnly = new ReadOnlyFileStoreAdaptor(pStoreToUse, false);
+      bNextOwnershipOfStore = true;
+      pStoreToUse = pReadOnly;
+    }
   }
+  if(bNextOwnershipOfStore)
+    delete pStoreToUse;
 
   IDirectory *pDirectory = 0;
   try

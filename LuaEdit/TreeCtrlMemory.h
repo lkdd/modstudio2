@@ -36,51 +36,16 @@ OTHER DEALINGS IN THE SOFTWARE.
     #include "wx/wx.h"
 #endif
 // ----------------------------
-#include <wx/combobox.h>
-#include <wx/listctrl.h>
+#include <wx/treectrl.h>
 #include <Rainman2.h>
-#include <vector>
 
-class frmLoadProject : public wxFrame
+class ITreeCtrlMemory
 {
 public:
-  frmLoadProject();
-  ~frmLoadProject();
+  virtual ~ITreeCtrlMemory();
 
-  enum
-  {
-    BMP_DONATE = wxID_HIGHEST + 1,
-    BTN_BROWSE_PIPELINE,
-    CMB_PIPELINE_FILES,
-    LST_PIPELINE_PROJECTS,
-    BTN_LOAD,
-  };
-
-  void onBrowse(wxCommandEvent& e);
-  void onDonate(wxCommandEvent& e);
-  void onLoad  (wxCommandEvent& e);
-  void onNew   (wxCommandEvent& e);
-  void onPipelineFilesSelect     (wxCommandEvent& e);
-  void onPipelineProjectSelected (wxListEvent   & e);
-  void onPipelineProjectActivated(wxListEvent   & e);
-  void onPipelineProjectsSort    (wxListEvent   & e);
-  void onQuit  (wxCommandEvent& e);
-  void onResize(wxSizeEvent   & e);
-
-protected:
-  void _refreshProjectList();
-  void _adjustProjectListItemFont(long iIndex, wxFont (*fnAdjust)(wxFont));
-  void _loadEditor(IniFile::Section* pPipelineSection);
-  void _loadEditor(IDirectory *pDirectory, IFileStore *pFileStore);
-
-  IniFile m_oPipelineFile;
-  wxComboBox* m_pPipelineFileList;
-  wxListCtrl* m_pPipelineProjects;
-  wxButton* m_pLoadButton,
-          * m_pNewButton;
-  bool m_bCanLoad;
-  long m_iLastColumnSort,
-       m_iSelectedProject;
-  DECLARE_EVENT_TABLE();
+  virtual void store(wxTreeCtrl*) throw(...) = 0;
+  virtual void retrieve(wxTreeCtrl*) throw(...) = 0;
 };
 
+ITreeCtrlMemory* CreateTreeCtrlMemory();
