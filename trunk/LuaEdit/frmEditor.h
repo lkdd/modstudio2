@@ -90,8 +90,9 @@ protected:
   wxAuiManager m_oManager;
   wxStyledTextCtrl *m_pLuaCode;
   wxPropertyGridManager *m_pLuaProperties;
-  wxTreeCtrl *m_pInheritanceTree;
-  wxTreeCtrl *m_pAttribTree;
+  wxTreeCtrl *m_pInheritanceTree,
+             *m_pAttribTree;
+  wxTreeItemId m_oCurrentAttribTreeItem;
   wxListBox *m_pRecentLuas;
   IDirectory *m_pRootDirectory;
   IFileStore *m_pDirectoryStore;
