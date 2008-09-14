@@ -451,6 +451,11 @@ bool RainString::operator!= (const RainString& sOther) const throw()
   return compare(sOther) != 0;
 }
 
+bool RainString::operator!= (const wchar_t* sString) const throw()
+{
+  return !(*this == sString);
+}
+
 bool RainString::operator<  (const RainString& sOther) const throw()
 {
   return std::lexicographical_compare(begin(), end(), sOther.begin(), sOther.end());

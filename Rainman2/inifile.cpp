@@ -515,9 +515,9 @@ void IniFile::save(IFile* pFile) throw(...)
   oOutput.writeConverting(m_sComment, RainCharToChar);
   for(iterator itr_s = begin(), end_s = end(); itr_s != end_s; ++itr_s)
   {
-    oOutput.write(m_cSectionStartCharacter);
+    oOutput.write(RainCharToChar(m_cSectionStartCharacter));
     oOutput.writeConverting(itr_s->name(), RainCharToChar);
-    oOutput.write(m_cSectionEndCharacter);
+    oOutput.write(RainCharToChar(m_cSectionEndCharacter));
     if(itr_s->comment().isEmpty())
       oOutput.writeConverting(L"\r\n", 2, RainCharToChar);
     else
@@ -527,7 +527,7 @@ void IniFile::save(IFile* pFile) throw(...)
     {
       oOutput.writeConverting(itr_v->key(), RainCharToChar);
       oOutput.write(' ');
-      oOutput.write(m_cAssignmentCharacter);
+      oOutput.write(RainCharToChar(m_cAssignmentCharacter));
       oOutput.write(' ');
       oOutput.writeConverting(itr_v->value(), RainCharToChar);
       if(itr_v->comment().isEmpty())

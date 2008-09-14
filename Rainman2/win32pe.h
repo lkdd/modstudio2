@@ -23,27 +23,43 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
-#pragma warning (push)
-#include "../api.h"
-#include "../archive.h"
-#include "../attributes.h"
-#include "../binaryattrib.h"
-#include "../buffering_streams.h"
-#include "../exception.h"
-#include "../exception_dialog.h"
-#include "../file.h"
-#include "../filestore_adaptors.h"
-#include "../filestore_composition.h"
-#include "../hash.h"
-#include "../inifile.h"
-#include "../luattrib.h"
-#include "../mem_fs.h"
-#include "../memfile.h"
-// new_trace.h is for internal use only
-// rainman2.h is this file
-// resource.h is for internal use only
-#include "../rgd_dict.h"
-#include "../string.h"
-#include "../va_copy.h"
-#include "../win32pe.h"
-#pragma warning (pop)
+#include <vector>
+#include "api.h"
+#include "file.h"
+
+class RAINMAN2_API Win32PEFile
+{
+public:
+  struct Section
+  {
+    RainString sName;
+    unsigned long iVirtualSize;
+    unsigned long iVirtualAddress;
+    unsigned long iPhysicalSize;
+    unsigned long iPhysicalAddress;
+    unsigned long iFlags;
+  };
+
+  Win32PEFile();
+  ~Win32PEFile();
+
+  void clear();
+
+  void load(IFile *pFile) throw(...);
+  void load(RainString sFile) throw(...);
+
+  size_t getSectionCount() const throw();
+  const Section& getSection(size_t iIndex) const throw(...);
+
+  size_t getImportedLibraryCount() const throw();
+  const RainString& getImportedLibrary(size_t iIndex) const throw(...);
+
+protected:
+  std::vector< std::pair<unsigned long, unsigned long> >m_vSpecialTables;
+  std::vector<Section> m_vSections;
+  std::vector<RainString> m_vImportedLibraries;
+
+  unsigned long _mapToPhysicalAddress(unsigned long iVirtualAddress) throw(...);
+
+  void _loadImports(IFile *pFile);
+};

@@ -53,7 +53,7 @@ void FileStoreComposition::addFileStore(IFileStore *pStore, const RainString &sP
 {
   for(std::vector<file_store_info_t*>::iterator itr = m_vFileStores.begin(); itr != m_vFileStores.end(); ++itr)
   {
-    if((**itr).m_pStore == pStore && (**itr).m_sPrefix == sPrefix)
+    if((**itr).m_pStore == pStore && (**itr).m_sPrefix == sPrefix && (**itr).m_sMountedIn == sMountIn)
       THROW_SIMPLE(L"Filestore is already in the composition");
   }
 
