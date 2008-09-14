@@ -88,6 +88,7 @@ protected:
   wxPGProperty* _getValueEditor(IAttributeValue* pValue, wxString sName = L"", wxString sNameId = L"");
 
   wxAuiManager m_oManager;
+  wxAuiNotebook *m_pNotebook;
   wxStyledTextCtrl *m_pLuaCode;
   wxPropertyGridManager *m_pLuaProperties;
   wxTreeCtrl *m_pInheritanceTree,
