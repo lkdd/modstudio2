@@ -228,30 +228,44 @@ void frmLoadProject::_loadEditor(IniFile::Section* pPipelineSection)
   bool bNextOwnershipOfStore = false;
   while(pPipelineSection)
   {
-    RainString sGeneric = (*pPipelineSection)["DataGeneric"];
-    if(!sGeneric.isEmpty())
+    RainString sData = (*pPipelineSection)["DataFinal"];
+    if(pReadOnly == 0 && !sData.isEmpty())
     {
+      sData = sRootFolder + sData;
+      if(sData.suffix(1) != L"\\")
+        sData += L"\\";
       try
       {
-        pComposition->addFileStore(pStoreToUse, sRootFolder + sGeneric, L"Generic", iPriority--, bNextOwnershipOfStore);
+        pComposition->addFileStore(pStoreToUse, sData, L"DataRGD", iPriority--, bNextOwnershipOfStore);
         bNextOwnershipOfStore = false;
       }
-      CATCH_MESSAGE_BOX_1(L"Cannot load %s (cannot mount DataGeneric)", pPipelineSection->name().getCharacters(), {
+      CATCH_MESSAGE_BOX_1(L"Cannot load %s (cannot mount DataFinal)", pPipelineSection->name().getCharacters(), {
         if(bNextOwnershipOfStore)
           delete pStoreToUse;
         return;
       });
     }
 
-    RainString sData = (*pPipelineSection)["DataFinal"];
-    if(pReadOnly == 0 && !sData.isEmpty())
+    RainString sGeneric = (*pPipelineSection)["DataGeneric"];
+    if(!sGeneric.isEmpty())
     {
+      sGeneric = sRootFolder + sGeneric;
+      if(sGeneric.suffix(1) != L"\\")
+        sGeneric += L"\\";
+
+      // Relic store the CoH Lua files alongside the RGD files in DataFinal\Attrib (DataGeneric\Attrib doesn't exist)
+      // Detect this and map that as Generic if it looks like the case
+      if(!RainDoesDirectoryExist(sGeneric + L"Attrib\\") && !sData.isEmpty() && _isSideBySideAttrib(sData + L"Attrib\\"))
+      {
+        sGeneric = sData;
+      }
+
       try
       {
-        pComposition->addFileStore(pStoreToUse, sRootFolder + sData, L"DataRGD", iPriority--, bNextOwnershipOfStore);
+        pComposition->addFileStore(pStoreToUse, sGeneric, L"Generic", iPriority--, bNextOwnershipOfStore);
         bNextOwnershipOfStore = false;
       }
-      CATCH_MESSAGE_BOX_1(L"Cannot load %s (cannot mount DataFinal)", pPipelineSection->name().getCharacters(), {
+      CATCH_MESSAGE_BOX_1(L"Cannot load %s (cannot mount DataGeneric)", pPipelineSection->name().getCharacters(), {
         if(bNextOwnershipOfStore)
           delete pStoreToUse;
         return;
@@ -308,6 +322,57 @@ void frmLoadProject::_loadEditor(IDirectory *pDirectory, IFileStore *pFileStore)
   pEditor->Maximize();
   pEditor->Refresh();
   Close();
+}
+
+enum EThreeStateBool
+{
+  TSB_False = 0,
+  TSB_True = 1,
+  TSB_Undetermined = 2,
+};
+
+static EThreeStateBool SideBySideRecurse(IDirectory *pDir)
+{
+  size_t iCountLua = 0, iCountRGD = 0;
+  EThreeStateBool eStatus = TSB_Undetermined;
+  for(IDirectory::iterator itr = pDir->begin(), end = pDir->end(); eStatus == TSB_Undetermined && itr != end; ++itr)
+  {
+    if(itr->isDirectory())
+    {
+      std::auto_ptr<IDirectory> pSubDir(itr->open());
+      eStatus = SideBySideRecurse(&*pSubDir);
+    }
+    else
+    {
+      RainString sExt = itr->name().afterLast('.');
+      if(sExt.compareCaseless(L"lua") == 0)
+        ++iCountLua;
+      else if(sExt.compareCaseless(L"rgd") == 0)
+        ++iCountRGD;
+    }
+  }
+  if(eStatus == TSB_Undetermined)
+  {
+    if(iCountLua != iCountRGD)
+      eStatus = TSB_False;
+    else if(iCountLua >= 3)
+      eStatus = TSB_True;
+  }
+  return eStatus;
+}
+
+bool frmLoadProject::_isSideBySideAttrib(RainString sPath)
+{
+  try
+  {
+    std::auto_ptr<IDirectory> pDir(RainOpenDirectory(sPath));
+    return SideBySideRecurse(&*pDir) == TSB_True;
+  }
+  catch(RainException *pE)
+  {
+    delete pE;
+    return false;
+  }
 }
 
 void frmLoadProject::_adjustProjectListItemFont(long iIndex, wxFont (*fnAdjust)(wxFont))

@@ -72,6 +72,7 @@ protected:
   void _adjustProjectListItemFont(long iIndex, wxFont (*fnAdjust)(wxFont));
   void _loadEditor(IniFile::Section* pPipelineSection);
   void _loadEditor(IDirectory *pDirectory, IFileStore *pFileStore);
+  bool _isSideBySideAttrib(RainString sPath);
 
   IniFile m_oPipelineFile;
   wxComboBox* m_pPipelineFileList;

@@ -122,16 +122,25 @@ void InheritanceBuilder::_addRootItemToTree(InheritanceBuilder::_item_t* pItem)
 void InheritanceBuilder::_recurse(IDirectory* pDirectory, RainString sPath) throw(...)
 {
   wxProgressDialog* pProgress = 0;
+  int iMaximum;
   if(sPath.isEmpty())
   {
-    pProgress = new wxProgressDialog(L"Loading Luas", L"Please wait, initialising... ", static_cast<int>(pDirectory->getItemCount()));
+    iMaximum = static_cast<int>(pDirectory->getItemCount());
+    pProgress = new wxProgressDialog(L"Loading Luas", L"Please wait, initialising... ", iMaximum, 0, wxPD_APP_MODAL | wxPD_SMOOTH);
+    pProgress->SetSize(pProgress->GetSize().Scale(2.0f, 1.0f));
   }
-  for(IDirectory::iterator itr = pDirectory->begin(); itr != pDirectory->end(); ++itr)
+  for(IDirectory::iterator itr = pDirectory->begin(), end = pDirectory->end(); itr != end; ++itr)
   {
     if(pProgress)
     {
-      pProgress->Update(static_cast<int>(itr->getIndex()), wxString(L"Loading folder: ") + implicit_cast<wxString>(itr->name()));
-      ::wxSafeYield();
+      int iNewIndex = static_cast<int>(itr->getIndex());
+      /*
+        I am really not happy with the visual appearance of this progress bar under vista (and perhaps
+        the same is true with XP). It updates too quickly for some things (i.e. the large array of TYPE_
+        folders) and visually, the bar lags behind the actual progress such that the text may say "28 of 30",
+        but the bar would only be 1/4 of the way across. Cannot find reason or solution to this.
+      */
+      pProgress->Update(iNewIndex, wxString::Format(L"Loading folder %i of %i: ", iNewIndex + 1, iMaximum) + implicit_cast<wxString>(itr->name()));
     }
     if(itr->isDirectory())
     {

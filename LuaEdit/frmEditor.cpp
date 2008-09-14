@@ -288,9 +288,9 @@ frmLuaEditor::frmLuaEditor()
   m_pRecentLuas = new wxListBox(this, LST_RECENT, wxPoint(0,0), wxSize(250,250), 0, NULL, wxLB_SINGLE | wxNO_BORDER | wxLB_HSCROLL | wxLB_NEEDED_SB);
 
   wxSize client_size = GetClientSize();
-  wxAuiNotebook *pNotebook = new wxAuiNotebook(this, NB_EDITORS, wxPoint(client_size.x, client_size.y), wxSize(430,200), wxAUI_NB_TOP | wxAUI_NB_TAB_MOVE | wxAUI_NB_TAB_FIXED_WIDTH);
+  m_pNotebook = new wxAuiNotebook(this, NB_EDITORS, wxPoint(client_size.x, client_size.y), wxSize(430,200), wxAUI_NB_TOP | wxAUI_NB_TAB_MOVE | wxAUI_NB_TAB_FIXED_WIDTH);
 
-  wxSplitterWindow *pLuaEditSplit = new wxSplitterWindow(pNotebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_3D);
+  wxSplitterWindow *pLuaEditSplit = new wxSplitterWindow(m_pNotebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_3D);
   m_pAttribTree = new wxTreeCtrl(pLuaEditSplit, TREE_ATTRIB, wxDefaultPosition, wxDefaultSize, wxTR_DEFAULT_STYLE | wxNO_BORDER);
   m_pLuaProperties = new wxPropertyGridManager(pLuaEditSplit, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxPG_SPLITTER_AUTO_CENTER | wxPG_TOOLTIPS | wxPG_HIDE_MARGIN | wxTAB_TRAVERSAL | wxPG_DESCRIPTION | wxNO_BORDER); 
   pLuaEditSplit->SplitVertically(m_pAttribTree, m_pLuaProperties);
@@ -301,11 +301,11 @@ frmLuaEditor::frmLuaEditor()
     pImageList->Add(bmpIcons.GetSubBitmap(wxRect(i, 0, 16, 16)), *wxWHITE);
   m_pAttribTree->AssignImageList(pImageList);
 
-  pNotebook->AddPage(pLuaEditSplit, L"Lua Tree", false );
-  pNotebook->AddPage(m_pLuaCode = new wxStyledTextCtrl(pNotebook, TXT_CODE, wxDefaultPosition, wxDefaultSize, wxNO_BORDER) , L"Lua Code", false);
+  m_pNotebook->AddPage(pLuaEditSplit, L"Lua Tree", false );
+  m_pNotebook->AddPage(m_pLuaCode = new wxStyledTextCtrl(m_pNotebook, TXT_CODE, wxDefaultPosition, wxDefaultSize, wxNO_BORDER) , L"Lua Code", false);
   m_oManager.AddPane(m_pInheritanceTree, wxAuiPaneInfo().Name(L"inheritance").Caption(L"Inheritance Tree").Left().Layer(1).Position(1).CloseButton(false).MaximizeButton(true));
   m_oManager.AddPane(m_pRecentLuas, wxAuiPaneInfo().Name(L"recent").Caption(L"Recent Luas").Left().Layer(1).Position(2).CloseButton(false).MaximizeButton(true));
-  m_oManager.AddPane(pNotebook, wxAuiPaneInfo().Name(L"notebook_main").CenterPane().PaneBorder(false));
+  m_oManager.AddPane(m_pNotebook, wxAuiPaneInfo().Name(L"notebook_main").CenterPane().PaneBorder(false));
 
   _initTextControl();
   _initToolbar();
@@ -450,7 +450,7 @@ void frmLuaEditor::_initToolbar()
   }
   pToolbar->Realize();
 
-  m_oManager.AddPane(pToolbar, wxAuiPaneInfo().Name(wxT("tbSave")).Caption(wxT("Save"))/*.ToolbarPane()*/.Top().Fixed().Dock().Row(5).CloseButton(false).CaptionVisible(false).Gripper(true));
+  m_oManager.AddPane(pToolbar, wxAuiPaneInfo().Name(wxT("tbSave")).Caption(wxT("Save")).Top().Fixed().Dock().Row(5).CloseButton(false).ToolbarPane());
 }
 
 void frmLuaEditor::onStyleNeeded(wxStyledTextEvent &e)
@@ -469,14 +469,39 @@ void frmLuaEditor::onListItemActivate(wxCommandEvent &e)
   onTreeItemActivate(eNewEvent);
 }
 
+static char wxChar_to_char(wxChar c)
+{
+  return c & ~0xFF ? '?' : c;
+}
+
 void frmLuaEditor::onTreeItemActivate(wxTreeEvent &e)
 {
   if(m_oCurrentAttribTreeItem.IsOk())
   {
+    // Save tree state
     InheritTreeItemData* pData = reinterpret_cast<InheritTreeItemData*>(m_pInheritanceTree->GetItemData(m_oCurrentAttribTreeItem));
     if(pData->pRememberedState == 0)
       pData->pRememberedState = CreateTreeCtrlMemory();
     pData->pRememberedState->store(m_pAttribTree);
+
+    // Save code (to memory store)
+    if(m_bAttributeFileChanged || m_pLuaCode->GetModify())
+    {
+      RainString sPath = m_pRootDirectory->getPath() + pData->sPath;
+      IFile* pFile = 0;
+      try
+      {
+        pFile = m_pDirectoryStore->openFile(sPath, FM_Write);
+        BufferingOutputStream<char> oOutput(pFile);
+        oOutput.writeConverting(m_pLuaCode->GetText().c_str(), m_pLuaCode->GetText().Len(), wxChar_to_char);
+      }
+      catch(RainException *pE)
+      {
+        delete pE;
+        delete pFile;
+      }
+      delete pFile;
+    }
   }
 
   wxTreeItemId oItem = e.GetItem();
@@ -527,7 +552,10 @@ void frmLuaEditor::onTreeItemActivate(wxTreeEvent &e)
         m_pInheritanceTree->SetItemBold(reinterpret_cast<RecentLuaListData*>(m_pRecentLuas->GetClientObject(1))->oTreeItem, false);
       }
 
-      m_pAttribTree->SetFocus();
+      if(m_pNotebook->GetSelection() == 0)
+        m_pAttribTree->SetFocus();
+      else
+        m_pLuaCode->SetFocus();
     }
   }
 }
