@@ -257,6 +257,10 @@
 					RelativePath=".\string.cpp"
 					>
 				</File>
+				<File
+					RelativePath=".\win32pe.cpp"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -365,6 +369,10 @@
 				</File>
 				<File
 					RelativePath=".\va_copy.h"
+					>
+				</File>
+				<File
+					RelativePath=".\win32pe.h"
 					>
 				</File>
 			</Filter>

@@ -125,6 +125,8 @@ public:
     {
       m_iBufferSize = iBufferLength;
       std::transform(pBuffer, pBuffer + iBufferLength, m_aBuffer, fnConvertor);
+      pBuffer += iBufferLength;
+      iLength -= iBufferLength;
       flush();
     }
 

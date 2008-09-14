@@ -309,6 +309,7 @@ public:
     More efficient than using compare(sOther) != 0
   */
   bool operator!= (const RainString& sOther) const throw();
+  bool operator!= (const wchar_t* sString) const throw();
 
   //! Test if this string is lexicographically less than another
   /*!
