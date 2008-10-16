@@ -23,6 +23,8 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
+#pragma warning(push)
+#pragma warning(disable: 4996)
 #include "file.h"
 
 template <class TChar, size_t iBufferLength = 1024>
@@ -191,3 +193,5 @@ protected:
   size_t m_iBufferSize;
   TChar m_aBuffer[iBufferLength];
 };
+
+#pragma warning(pop)

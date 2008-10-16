@@ -105,13 +105,9 @@ protected:
 #define CHECK_RANGE(min, value, max) RainException::checkRange(__WFILE__, __LINE__, value, min, max, WIDEN(#min) L" <= " WIDEN(#value) L" <= " WIDEN(#max))
 #define CHECK_RANGE_LTMAX(min, value, max) RainException::checkRangeLtMax(__WFILE__, __LINE__, value, min, max, WIDEN(#min) L" <= " WIDEN(#value) L" < " WIDEN(#max))
 
-#define RETHROW_SIMPLE(message, previous) throw new RainException(__WFILE__, __LINE__, message, previous)
-#define RETHROW_SIMPLE_1(message, a1, previous) throw new RainException(__WFILE__, __LINE__, previous, message, a1)
-#define RETHROW_SIMPLE_2(message, a1, a2, previous) throw new RainException(__WFILE__, __LINE__, previous, message, a1, a2)
-#define RETHROW_SIMPLE_3(message, a1, a2, a3, previous) throw new RainException(__WFILE__, __LINE__, previous, message, a1, a2, a3)
-#define THROW_SIMPLE(message) RETHROW_SIMPLE(message, 0)
-#define THROW_SIMPLE_1(message, a1) RETHROW_SIMPLE_1(message, a1, 0)
-#define THROW_SIMPLE_2(message, a1, a2) RETHROW_SIMPLE_2(message, a1, a2, 0)
-#define THROW_SIMPLE_3(message, a1, a2, a3) RETHROW_SIMPLE_3(message, a1, a2, a3, 0)
-#define CATCH_THROW_SIMPLE(message, cleanup) catch(RainException *e) { cleanup; RETHROW_SIMPLE(message, e); }
-#define CATCH_THROW_SIMPLE_1(message, a1, cleanup) catch(RainException *e) { cleanup; RETHROW_SIMPLE_1(message, a1, e); }
+#define RETHROW_SIMPLE(previous, message) throw new RainException(__WFILE__, __LINE__, message, previous)
+#define RETHROW_SIMPLE_(previous, message, ...) throw new RainException(__WFILE__, __LINE__, previous, message, __VA_ARGS__)
+#define THROW_SIMPLE(message) RETHROW_SIMPLE(0, message)
+#define THROW_SIMPLE_(message, ...) RETHROW_SIMPLE_(0, message, __VA_ARGS__)
+#define CATCH_THROW_SIMPLE(cleanup, message) catch(RainException *e) { cleanup; RETHROW_SIMPLE(e, message); }
+#define CATCH_THROW_SIMPLE_(cleanup, message, ...) catch(RainException *e) { cleanup; RETHROW_SIMPLE_(e, message, __VA_ARGS__); }

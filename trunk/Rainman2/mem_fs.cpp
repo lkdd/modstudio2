@@ -138,7 +138,7 @@ public:
 void MemoryFileStore::addEntryPoint(const RainString& sName) throw(...)
 {
   if(std::find(m_vEntryPoints.begin(), m_vEntryPoints.end(), sName) != m_vEntryPoints.end())
-    THROW_SIMPLE_1(L"Entry point \'%s\' already exists", sName.getCharacters());
+    THROW_SIMPLE_(L"Entry point \'%s\' already exists", sName.getCharacters());
 
   m_vEntryPoints.push_back(CHECK_ALLOCATION(new (std::nothrow) directory_t(sName)));
 }
@@ -195,7 +195,7 @@ bool MemoryFileStore::_find(const RainString& sWhat, MemoryFileStore::directory_
     if(!bCreateDir)
     {
       if(bThrow)
-        THROW_SIMPLE_2(L"Cannot find entry point \'%s\' for \'%s\'", sEntryPoint.getCharacters(), sWhat.getCharacters());
+        THROW_SIMPLE_(L"Cannot find entry point \'%s\' for \'%s\'", sEntryPoint.getCharacters(), sWhat.getCharacters());
       else
         return false;
     }
@@ -254,7 +254,7 @@ bool MemoryFileStore::_find(const RainString& sWhat, MemoryFileStore::directory_
       if(!bCreateDir)
       {
         if(bThrow)
-          THROW_SIMPLE_3(L"Cannot find %s \'%s\' for \'%s\'", sRemainder.isEmpty() ? L"item" : L"directory", sPart.getCharacters(), sWhat.getCharacters());
+          THROW_SIMPLE_(L"Cannot find %s \'%s\' for \'%s\'", sRemainder.isEmpty() ? L"item" : L"directory", sPart.getCharacters(), sWhat.getCharacters());
         else
           return false;
       }
@@ -293,17 +293,17 @@ IFile* MemoryFileStore::openFile(const RainString& sPath, eFileOpenMode eMode) t
 {
   file_t* pFile = 0;
   if(!_find(sPath, 0, &pFile, eMode == FM_Write, eMode == FM_Write, true) || pFile == 0)
-    THROW_SIMPLE_1(L"Cannot open file \'%s\' - it is a directory", sPath.getCharacters());
+    THROW_SIMPLE_(L"Cannot open file \'%s\' - it is a directory", sPath.getCharacters());
   if(eMode == FM_Write)
   {
     if(pFile->m_iOpenCount != 1)
-      THROW_SIMPLE_1(L"Cannot open file \'%s\' for writing - it is already in use", sPath.getCharacters());
+      THROW_SIMPLE_(L"Cannot open file \'%s\' for writing - it is already in use", sPath.getCharacters());
     return CHECK_ALLOCATION(new (std::nothrow) MemFileWriteAdaptor(pFile));
   }
   else
   {
     if(pFile->m_iOpenCount == 0)
-      THROW_SIMPLE_1(L"Cannot open file \'%s\' for reading - it is being written to", sPath.getCharacters());
+      THROW_SIMPLE_(L"Cannot open file \'%s\' for reading - it is being written to", sPath.getCharacters());
     return CHECK_ALLOCATION(new (std::nothrow) MemFileReadAdaptor(pFile));
   }
 }
@@ -338,7 +338,7 @@ void MemoryFileStore::deleteFile(const RainString& sPath) throw(...)
   directory_t* pDirectory = 0;
   file_t* pFile = 0;
   if(!_find(sPath, &pDirectory, &pFile, false, false, true) || pFile == 0)
-    THROW_SIMPLE_1(L"Cannot delete file \'%s\' - it is a directory", sPath.getCharacters());
+    THROW_SIMPLE_(L"Cannot delete file \'%s\' - it is a directory", sPath.getCharacters());
 
   std::vector<file_t*>::iterator itrFile = std::find(pDirectory->m_vFiles.begin(), pDirectory->m_vFiles.end(), pFile->m_sName);
   CHECK_ASSERT(itrFile != pDirectory->m_vFiles.end());
@@ -377,7 +377,7 @@ IDirectory* MemoryFileStore::openDirectory(const RainString& sPath) throw(...)
 {
   directory_t* pDirectory = 0;
   if(!_find(sPath, &pDirectory, 0, false, false, true) || pDirectory == 0)
-    THROW_SIMPLE_1(L"Cannot open directory \'%s\' - it is a file", sPath.getCharacters());
+    THROW_SIMPLE_(L"Cannot open directory \'%s\' - it is a file", sPath.getCharacters());
   return CHECK_ALLOCATION(new (std::nothrow) MemDirectoryAdaptor(pDirectory, this, sPath));
 }
 
@@ -398,7 +398,7 @@ bool MemoryFileStore::doesDirectoryExist(const RainString& sPath) throw()
 void MemoryFileStore::createDirectory(const RainString& sPath) throw(...)
 {
   if(_find(sPath, 0, 0, false, false, false))
-    THROW_SIMPLE_1(L"Cannot create directory \'%s\' - it already exists", sPath.getCharacters());
+    THROW_SIMPLE_(L"Cannot create directory \'%s\' - it already exists", sPath.getCharacters());
   _find(sPath, 0, 0, false, true, true);
 }
 
@@ -415,7 +415,7 @@ void MemoryFileStore::deleteDirectory(const RainString& sPath) throw(...)
   directory_t* pDirectory = 0;
   _find(sPath, &pDirectory, 0, false, false, true);
   if(pDirectory->m_pParent == 0)
-    THROW_SIMPLE_1(L"Cannot delete root directory \'%s\'", sPath.getCharacters());
+    THROW_SIMPLE_(L"Cannot delete root directory \'%s\'", sPath.getCharacters());
   pDirectory->m_pParent->m_vSubdirectories.erase(std::find(pDirectory->m_pParent->m_vSubdirectories.begin(), pDirectory->m_pParent->m_vSubdirectories.end(), pDirectory));
   delete pDirectory;
 }
