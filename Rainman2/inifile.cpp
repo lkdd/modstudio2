@@ -480,7 +480,7 @@ void IniFile::load(IFile* pFile) throw(...)
             pLastSection = &appendSection(RainString());
           if(sLine.indexOf(m_cAssignmentCharacter) == static_cast<size_t>(-1))
           {
-            THROW_SIMPLE_1(L"Line is not a section nor a value \'%s\'", sLine.getCharacters());
+            THROW_SIMPLE_(L"Line is not a section nor a value \'%s\'", sLine.getCharacters());
           }
           pLastValue = &pLastSection->appendValue(sLine.beforeFirst(m_cAssignmentCharacter).trimWhitespace(), sLine.afterFirst(m_cAssignmentCharacter).trimWhitespace());
           pLastComment = &pLastValue->m_sComment;
@@ -500,7 +500,7 @@ void IniFile::load(RainString sFile) throw(...)
     pFile = RainOpenFile(sFile, FM_Read);
     load(pFile);
   }
-  CATCH_THROW_SIMPLE_1(L"Cannot load INI file \'%s\'", sFile.getCharacters(), {delete pFile;});
+  CATCH_THROW_SIMPLE_(delete pFile, L"Cannot load INI file \'%s\'", sFile.getCharacters());
   delete pFile;
 }
 
@@ -546,7 +546,7 @@ void IniFile::save(RainString sFile) throw(...)
     pFile = RainOpenFile(sFile, FM_Write);
     save(pFile);
   }
-  CATCH_THROW_SIMPLE_1(L"Cannot save INI file \'%s\'", sFile.getCharacters(), {delete pFile;});
+  CATCH_THROW_SIMPLE_(delete pFile, L"Cannot save INI file \'%s\'", sFile.getCharacters());
   delete pFile;
 }
 

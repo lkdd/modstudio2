@@ -506,11 +506,11 @@ IFile* RainOpenFile(const RainString& sPath, eFileOpenMode eMode) throw(...)
     sMode = L"wb";
     break;
   default:
-    THROW_SIMPLE_1(L"Unsupported file mode for opening \'%s\'", sPath.getCharacters());
+    THROW_SIMPLE_(L"Unsupported file mode for opening \'%s\'", sPath.getCharacters());
   }
   FILE* pRawFile = _wfopen(sPath.getCharacters(), sMode);
   if(pRawFile == 0)
-    THROW_SIMPLE_1(L"Unable to open \'%s\'", sPath.getCharacters());
+    THROW_SIMPLE_(L"Unable to open \'%s\'", sPath.getCharacters());
   return CHECK_ALLOCATION(new NOTHROW RainFileAdapter(pRawFile));
 }
 
@@ -543,7 +543,7 @@ bool RainDoesFileExist(const RainString& sPath) throw()
 void RainDeleteFile(const RainString& sPath) throw(...)
 {
   if(!RainDeleteFileNoThrow(sPath))
-    THROW_SIMPLE_1(L"Cannot delete file \'%s\'", sPath.getCharacters());
+    THROW_SIMPLE_(L"Cannot delete file \'%s\'", sPath.getCharacters());
 }
 
 bool RainDeleteFileNoThrow(const RainString& sPath) throw()
@@ -572,7 +572,7 @@ public:
     m_vItems.push_back(CHECK_ALLOCATION(new NOTHROW WIN32_FIND_DATAW));
     HANDLE hIterator = FindFirstFileW(sPath.getCharacters(), m_vItems[0]);
     if (hIterator == INVALID_HANDLE_VALUE)
-      THROW_SIMPLE_1(L"Cannot iterate contents of \'%s\'", m_sPath.getCharacters());
+      THROW_SIMPLE_(L"Cannot iterate contents of \'%s\'", m_sPath.getCharacters());
     do
     {
       ++m_iItemCount;
@@ -635,7 +635,7 @@ IDirectory* RainOpenDirectory(const RainString& sPath) throw(...)
   {
     pDirectory->init(sPath);
   }
-  CATCH_THROW_SIMPLE_1(L"Cannot open directory \'%s\'", sPath.getCharacters(), {delete pDirectory;});
+  CATCH_THROW_SIMPLE_(delete pDirectory, L"Cannot open directory \'%s\'", sPath.getCharacters());
   return pDirectory;
 }
 
@@ -673,7 +673,7 @@ void RainCreateDirectory(const RainString& sPath) throw(...)
       sErr = L"Cannot create directory \'%s\' (POSIX invalid path error)";
       break;
     }
-    THROW_SIMPLE_1(sErr, sPath.getCharacters());
+    THROW_SIMPLE_(sErr, sPath.getCharacters());
   }
 }
 
@@ -701,7 +701,7 @@ void RainDeleteDirectory(const RainString& sPath) throw(...)
       sErr = L"Cannot delete directory \'%s\' (POSIX access error)";
       break;
     };
-    THROW_SIMPLE_1(sErr, sPath.getCharacters());
+    THROW_SIMPLE_(sErr, sPath.getCharacters());
   }
 }
 

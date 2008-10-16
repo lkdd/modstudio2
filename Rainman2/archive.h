@@ -117,7 +117,7 @@ protected:
         return pArray + i;
     }
     if(bThrow)
-      THROW_SIMPLE_2(L"Unable to find \'%s\' of path \'%s\'", sPart.getCharacters(), sPath.getCharacters());
+      THROW_SIMPLE_(L"Unable to find \'%s\' of path \'%s\'", sPart.getCharacters(), sPath.getCharacters());
     return 0;
   }
 

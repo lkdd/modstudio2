@@ -39,10 +39,7 @@ void IHash::updateFromFile(IFile* pFile, size_t iByteCount) throw(...)
     {
       pFile->readArray(sBuffer, iBufferSize);
     }
-    catch(RainException *e)
-    {
-      RETHROW_SIMPLE(L"Cannot read required data for hash", e);
-    }
+    CATCH_THROW_SIMPLE({}, L"Cannot read required data for hash");
     iByteCount -= iBufferSize;
     update((const char*)sBuffer, iBufferSize);
   }
@@ -50,10 +47,7 @@ void IHash::updateFromFile(IFile* pFile, size_t iByteCount) throw(...)
   {
     pFile->readArray(sBuffer, iByteCount);
   }
-  catch(RainException *e)
-  {
-    RETHROW_SIMPLE(L"Cannot read required data for hash", e);
-  }
+  CATCH_THROW_SIMPLE({}, L"Cannot read required data for hash");
   update((const char*)sBuffer, iByteCount);
 }
 

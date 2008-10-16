@@ -62,7 +62,7 @@ public:
   virtual IFile* openFile(size_t iIndex, eFileOpenMode eMode) throw(...)
   {
     if(eMode == FM_Write)
-      THROW_SIMPLE_1(L"Cannot open index %lu for writing - it is read-only", static_cast<unsigned long>(iIndex));
+      THROW_SIMPLE_(L"Cannot open index %lu for writing - it is read-only", static_cast<unsigned long>(iIndex));
     return m_pDirectory->openFile(iIndex, eMode);
   }
 
@@ -125,7 +125,7 @@ void ReadOnlyFileStoreAdaptor::getCaps(file_store_caps_t& oCaps) const throw()
 IFile* ReadOnlyFileStoreAdaptor::openFile(const RainString& sPath, eFileOpenMode eMode) throw(...)
 {
   if(eMode == FM_Write)
-    THROW_SIMPLE_1(L"Cannot write to file \'%s\' - it is read-only", sPath.getCharacters());
+    THROW_SIMPLE_(L"Cannot write to file \'%s\' - it is read-only", sPath.getCharacters());
   else
     return m_pFileStore->openFile(sPath, eMode);
 }
@@ -145,7 +145,7 @@ bool ReadOnlyFileStoreAdaptor::doesFileExist(const RainString& sPath) throw()
 
 void ReadOnlyFileStoreAdaptor::deleteFile(const RainString& sPath) throw(...)
 {
-  THROW_SIMPLE_1(L"Cannot delete file \'%s\' - it is read-only", sPath.getCharacters());
+  THROW_SIMPLE_(L"Cannot delete file \'%s\' - it is read-only", sPath.getCharacters());
 }
 
 bool ReadOnlyFileStoreAdaptor::deleteFileNoThrow(const RainString& sPath) throw()
@@ -194,7 +194,7 @@ bool ReadOnlyFileStoreAdaptor::doesDirectoryExist(const RainString& sPath) throw
 
 void ReadOnlyFileStoreAdaptor::createDirectory(const RainString& sPath) throw(...)
 {
-  THROW_SIMPLE_1(L"Cannot create directory \'%s\' in read-only file store", sPath.getCharacters());
+  THROW_SIMPLE_(L"Cannot create directory \'%s\' in read-only file store", sPath.getCharacters());
 }
 
 bool ReadOnlyFileStoreAdaptor::createDirectoryNoThrow(const RainString& sPath) throw()
@@ -204,7 +204,7 @@ bool ReadOnlyFileStoreAdaptor::createDirectoryNoThrow(const RainString& sPath) t
 
 void ReadOnlyFileStoreAdaptor::deleteDirectory(const RainString& sPath) throw(...)
 {
-  THROW_SIMPLE_1(L"Cannot delete directory \'%s\' in read-only file store", sPath.getCharacters());
+  THROW_SIMPLE_(L"Cannot delete directory \'%s\' in read-only file store", sPath.getCharacters());
 }
 
 bool ReadOnlyFileStoreAdaptor::deleteDirectoryNoThrow(const RainString& sPath) throw()

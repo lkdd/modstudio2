@@ -458,7 +458,7 @@ LuaAttrib* LuaAttribCache::_performGet(const char* sFilename)
     {
       pFile = m_pDirectory->getStore()->openFile(m_pDirectory->getPath() + RainString(sFilename), FM_Read);
     }
-    CATCH_THROW_SIMPLE_1(L"Cannot open attrib file \'%S\'", sFilename, {});
+    CATCH_THROW_SIMPLE_({}, L"Cannot open attrib file \'%S\'", sFilename);
     lua_State *L = getLuaState();
     int iLuaStackTop = lua_gettop(L);
     try
@@ -471,7 +471,7 @@ LuaAttrib* LuaAttribCache::_performGet(const char* sFilename)
       delete pFile;
       pFile = 0;
     }
-    CATCH_THROW_SIMPLE_1(L"Cannot load attrib file \'%S\'", sFilename, {delete pAttribFile; lua_settop(L, iLuaStackTop); delete pFile;});
+    CATCH_THROW_SIMPLE_({delete pAttribFile; lua_settop(L, iLuaStackTop); delete pFile;}, L"Cannot load attrib file \'%S\'", sFilename);
     int iNewStackTop = lua_gettop(L);
     if(iNewStackTop > iLuaStackTop)
     {
@@ -490,7 +490,7 @@ LuaAttrib* LuaAttribCache::_performGet(const char* sFilename)
     else if(iNewStackTop < iLuaStackTop)
     {
       delete pAttribFile;
-      THROW_SIMPLE_1(L"LuaAttrib loading \'%S\' popped items off the stack", sFilename);
+      THROW_SIMPLE_(L"LuaAttrib loading \'%S\' popped items off the stack", sFilename);
     }
     m_mapFiles[iHash] = pAttribFile;
   }
@@ -542,7 +542,7 @@ size_t LuaAttribCache::writeTableToBinaryFile(const LuaAttrib::_table_t* pTable,
   }
   catch(RainException *pE)
   {
-    RETHROW_SIMPLE(L"Error writing Lua table to binary file", pE);
+    RETHROW_SIMPLE(pE, L"Error writing Lua table to binary file");
   }
 }
 
@@ -636,7 +636,7 @@ void LuaAttrib::saveToTextFile(IFile *pFile) throw(...)
     oOutput.write(LITERAL("\r\n"));
     _writeMetaData(oOutput);
   }
-  CATCH_THROW_SIMPLE(L"Error encountered while writing Lua data", {});
+  CATCH_THROW_SIMPLE({}, L"Error encountered while writing Lua data");
 }
 
 void LuaAttrib::_writeInheritLine(BufferingOutputStream<char>& oOutput, LuaAttrib::_value_t& oTable, bool bIsMetaData)
@@ -735,7 +735,7 @@ void LuaAttrib::_table_t::writeToTextAsMetaDataTable(BufferingOutputStream<char>
       break;
 
     default:
-      THROW_SIMPLE_1(L"Cannot write meta data of type %i to text file", static_cast<int>(itr->second.eType));
+      THROW_SIMPLE_(L"Cannot write meta data of type %i to text file", static_cast<int>(itr->second.eType));
     }
     oOutput.write(LITERAL(", "));
   }
@@ -804,7 +804,7 @@ void LuaAttrib::_table_t::writeToText(BufferingOutputStream<char>& oOutput, cons
         break; }
 
       default:
-        THROW_SIMPLE_1(L"Cannot write data of type %i to text file", static_cast<int>(itr->second->eType));
+        THROW_SIMPLE_(L"Cannot write data of type %i to text file", static_cast<int>(itr->second->eType));
       }
       oOutput.write(LITERAL("\r\n"));
     }
@@ -821,7 +821,7 @@ void LuaAttrib::_table_t::writeToText(BufferingOutputStream<char>& oOutput, cons
         {
           pChildTable->writeToText(oOutput, sNewPrefix, iPrefixLength + 4 + iNameLength);
         }
-        CATCH_THROW_SIMPLE_1(L"Cannot write child table \'%S\'", sName, {delete[] sNewPrefix;});
+        CATCH_THROW_SIMPLE_(delete[] sNewPrefix, L"Cannot write child table \'%S\'", sName);
         delete[] sNewPrefix;
       }
     }
@@ -886,7 +886,7 @@ void LuaAttrib::_loadk(_value_t *pDestination, Proto* pFunction, int iK)
     pDestination->iLength = static_cast<long>(tsvalue(pValue)->len);
     break;
   default:
-    THROW_SIMPLE_1(L"Unsupported constant type: %i", static_cast<int>(pValue->tt));
+    THROW_SIMPLE_(L"Unsupported constant type: %i", static_cast<int>(pValue->tt));
   };
 }
 
@@ -906,7 +906,7 @@ unsigned long LuaAttrib::_hashvalue(_value_t* pValue)
       sprintf(sBuffer, "%.7f", pValue->fValue);
     return RgdDictionary::getSingleton()->asciiToHash(sBuffer, strlen(sBuffer)); }
   default:
-    THROW_SIMPLE_1("Cannot hash value of type %i", static_cast<int>(pValue->eType));
+    THROW_SIMPLE_("Cannot hash value of type %i", static_cast<int>(pValue->eType));
   }
 }
 
@@ -981,7 +981,7 @@ void LuaAttrib::_execute(Proto* pFunction)
           pStack[GETARG_A(*I)].eType = _value_t::T_InheritMetaFn;
           break;
         default:
-          THROW_SIMPLE_1(L"Unsupported global: %S", s);
+          THROW_SIMPLE_(L"Unsupported global: %S", s);
         }
         break; }
 
@@ -1013,7 +1013,7 @@ void LuaAttrib::_execute(Proto* pFunction)
         else if(iHash == LuaCompileTimeHashes::MetaData)
           m_oMetaData = pStack[GETARG_A(*I)];
         else
-          THROW_SIMPLE_1(L"Unsupported global for write access: %S", svalue(pFunction->k + GETARG_Bx(*I)));
+          THROW_SIMPLE_(L"Unsupported global for write access: %S", svalue(pFunction->k + GETARG_Bx(*I)));
         break; }
 
       case OP_SETTABLE: {// A B C R(A)[RK(B)] := RK(C)
@@ -1022,7 +1022,7 @@ void LuaAttrib::_execute(Proto* pFunction)
         _value_t* pValue = ISK(GETARG_C(*I)) ? (_loadk(&oTempK1, pFunction, INDEXK(GETARG_C(*I))), &oTempK1) : pStack + GETARG_C(*I);
         if(pTable->eType != _value_t::T_Table || !pTable->pValue)
         {
-          THROW_SIMPLE_3(L"Using a non-table value as a table: table['%S'] = '%S' on line %i",
+          THROW_SIMPLE_(L"Using a non-table value as a table: table['%S'] = '%S' on line %i",
             pKey->eType == _value_t::T_String ? pKey->sValue : "(non string)",
             pValue->eType == _value_t::T_String ? pValue->sValue : "(non string)",
             static_cast<int>(pFunction->sizelineinfo == pFunction->sizecode ? pFunction->lineinfo[I - pFunction->code] : -1));
@@ -1070,7 +1070,7 @@ void LuaAttrib::_execute(Proto* pFunction)
           if(pStack[GETARG_A(*I)].eType != _value_t::T_Table)
             THROW_SIMPLE(L"Inheritance function did not return a table");
         }
-        CATCH_THROW_SIMPLE_1(L"Cannot load \'%S\'", pFilename->sValue, {});
+        CATCH_THROW_SIMPLE_({}, L"Cannot load \'%S\'", pFilename->sValue);
         if(pStack[GETARG_A(*I)].eType == _value_t::T_Table)
         {
           _wraptable(pStack + GETARG_A(*I));
@@ -1084,7 +1084,7 @@ void LuaAttrib::_execute(Proto* pFunction)
         break;
 
       default:
-        THROW_SIMPLE_1(L"Unsupported Lua Opcode: %i", static_cast<int>(GET_OPCODE(*I)));
+        THROW_SIMPLE_(L"Unsupported Lua Opcode: %i", static_cast<int>(GET_OPCODE(*I)));
       }
     }
   }
@@ -1223,7 +1223,7 @@ size_t LuaAttrib::_table_t::writeToBinary(IFile* pFile) const
       break;
 
     default:
-      THROW_SIMPLE_1(L"Cannot write type %li to binary file", static_cast<long>(oValue.eType));
+      THROW_SIMPLE_(L"Cannot write type %li to binary file", static_cast<long>(oValue.eType));
     }
 
     // Write any alignment bytes

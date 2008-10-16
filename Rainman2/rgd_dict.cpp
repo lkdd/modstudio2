@@ -83,7 +83,7 @@ bool RgdDictionary::isHashKnown(unsigned long iHash) const throw()
 
 #define CHECK_HASH(hash) \
   if(!isHashKnown(hash)) \
-    THROW_SIMPLE_1(L"Hash not in the dictionary: %lu", static_cast<unsigned long>(hash));
+    THROW_SIMPLE_(L"Hash not in the dictionary: %lu", static_cast<unsigned long>(hash));
 
 const char* RgdDictionary::hashToAscii(unsigned long iHash, size_t* pLength) throw(...)
 {

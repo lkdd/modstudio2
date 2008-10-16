@@ -127,7 +127,7 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
     else
       m_oFileHeader.iPlatform = 1;
   }
-  CATCH_THROW_SIMPLE(L"Could not load valid file header", {_cleanSelf();})
+  CATCH_THROW_SIMPLE(_cleanSelf(), L"Could not load valid file header")
 
   m_iDataHeaderOffset = pSgaFile->tell();
   try
@@ -140,7 +140,7 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
     if(memcmp(iHeaderHash, m_oFileHeader.iHeaderMD5, 16) != 0)
       THROW_SIMPLE(L"Stored header hash does not match computed header hash");
   }
-  CATCH_THROW_SIMPLE(L"File is not an SGA archive because of invalid header / hash", {_cleanSelf();});
+  CATCH_THROW_SIMPLE(_cleanSelf(), L"File is not an SGA archive because of invalid header / hash");
 
   try
   {
@@ -154,7 +154,7 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
     pSgaFile->readOne(m_oFileHeader.iStringOffset);
     pSgaFile->readOne(m_oFileHeader.iStringCount);
   }
-  CATCH_THROW_SIMPLE(L"Cannot load data header overview", {_cleanSelf();});
+  CATCH_THROW_SIMPLE(_cleanSelf(), L"Cannot load data header overview");
 
   try
   {
@@ -163,7 +163,7 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
     CHECK_ALLOCATION(m_sStringBlob = new (std::nothrow) char[iStringsLength]);
     pSgaFile->readArray(m_sStringBlob, iStringsLength);
   }
-  CATCH_THROW_SIMPLE(L"Cannot load file and directory names", {_cleanSelf();});
+  CATCH_THROW_SIMPLE(_cleanSelf(), L"Cannot load file and directory names");
 }
 
 bool SgaArchive::initNoThrow(IFile* pSgaFile, bool bTakePointerOwnership) throw()
@@ -210,7 +210,7 @@ bool SgaArchive::doesFileExist(const RainString& sPath) throw()
 
 void SgaArchive::deleteFile(const RainString& sPath) throw(...)
 {
-  THROW_SIMPLE_1(L"Files cannot be deleted from SGA archives (attempt to delete \'%s\')", sPath.getCharacters());
+  THROW_SIMPLE_(L"Files cannot be deleted from SGA archives (attempt to delete \'%s\')", sPath.getCharacters());
 }
 
 bool SgaArchive::deleteFileNoThrow(const RainString& sPath) throw()
@@ -302,7 +302,7 @@ IDirectory* SgaArchive::openDirectory(const RainString& sPath) throw(...)
   _file_info_t* pFileInfo;
   _resolvePath(sPath, &pDirectoryInfo, &pFileInfo, true);
   if(pDirectoryInfo == 0)
-    THROW_SIMPLE_1(L"Cannot open \'%s\' as a directory because it is a file", sPath.getCharacters());
+    THROW_SIMPLE_(L"Cannot open \'%s\' as a directory because it is a file", sPath.getCharacters());
   return CHECK_ALLOCATION(new (std::nothrow) ArchiveDirectoryAdapter(this, pDirectoryInfo));
 }
 
@@ -323,7 +323,7 @@ bool SgaArchive::doesDirectoryExist(const RainString& sPath) throw()
 
 void SgaArchive::createDirectory(const RainString& sPath) throw(...)
 {
-  THROW_SIMPLE_1(L"Directories cannot be created in SGA archives (attempt to create \'%s\')", sPath.getCharacters());
+  THROW_SIMPLE_(L"Directories cannot be created in SGA archives (attempt to create \'%s\')", sPath.getCharacters());
 }
 
 bool SgaArchive::createDirectoryNoThrow(const RainString& sPath) throw()
@@ -333,7 +333,7 @@ bool SgaArchive::createDirectoryNoThrow(const RainString& sPath) throw()
 
 void SgaArchive::deleteDirectory(const RainString& sPath) throw(...)
 {
-  THROW_SIMPLE_1(L"Directories cannot be deleted from SGA archives (attempt to delete \'%s\')", sPath.getCharacters());
+  THROW_SIMPLE_(L"Directories cannot be deleted from SGA archives (attempt to delete \'%s\')", sPath.getCharacters());
 }
 
 bool SgaArchive::deleteDirectoryNoThrow(const RainString& sPath) throw()
@@ -376,7 +376,7 @@ void SgaArchive::_loadEntryPointsUpTo(unsigned short int iEnsureLoaded) throw(..
         _loadDirectoriesUpTo(oRaw.iFirstDirectory);
       }
     }
-    CATCH_THROW_SIMPLE(L"Unable to load entry point details", {})
+    CATCH_THROW_SIMPLE({}, L"Unable to load entry point details")
   }
 }
 
@@ -436,7 +436,7 @@ void SgaArchive::_loadDirectoriesUpTo(unsigned short int iEnsureLoaded) throw(..
         m_pDirectories[iToLoad].iLastFile = oRaw.iLastFile;
       }
     }
-    CATCH_THROW_SIMPLE(L"Unable to load directory details", {})
+    CATCH_THROW_SIMPLE({}, L"Unable to load directory details")
   }
 }
 
@@ -461,7 +461,7 @@ void SgaArchive::_loadFilesUpTo_v2(unsigned short int iFirstToLoad, unsigned sho
       m_pFiles[iToLoad].iModificationTime = 0;
     }
   }
-  CATCH_THROW_SIMPLE(L"Unable to load file details", {})
+  CATCH_THROW_SIMPLE({}, L"Unable to load file details")
 }
 
 void SgaArchive::_loadFilesUpTo_v4(unsigned short int iFirstToLoad, unsigned short int iEnsureLoaded) throw(...)
@@ -486,7 +486,7 @@ void SgaArchive::_loadFilesUpTo_v4(unsigned short int iFirstToLoad, unsigned sho
       m_pFiles[iToLoad].iModificationTime = oRaw.iModificationTime;
     }
   }
-  CATCH_THROW_SIMPLE(L"Unable to load file details", {})
+  CATCH_THROW_SIMPLE({}, L"Unable to load file details")
 }
 
 void SgaArchive::_loadFilesUpTo(unsigned short int iEnsureLoaded) throw(...)
@@ -525,7 +525,7 @@ bool SgaArchive::_resolvePath(const RainString& sPath, _directory_info_t** ppDir
 
   // Load all the entry points
   try { _loadEntryPointsUpTo(m_oFileHeader.iEntryPointCount - 1); }
-  CATCH_THROW_SIMPLE(L"Unable to load entry point details", {if(!bThrow){delete e; return false;}});
+  CATCH_THROW_SIMPLE({ if(!bThrow){delete e; return false;} }, L"Unable to load entry point details");
 
   // Find entry point
   RainString sPart = sPath.beforeFirst('\\');
@@ -546,7 +546,7 @@ bool SgaArchive::_resolvePath(const RainString& sPath, _directory_info_t** ppDir
   while(!sPathRemain.isEmpty())
   {
     try { _loadChildren(pDirectory, true); }
-    CATCH_THROW_SIMPLE(L"Unable to load directory details", {if(!bThrow){delete e; return false;}});
+    CATCH_THROW_SIMPLE({ if(!bThrow){delete e; return false;} }, L"Unable to load directory details");
 
     pDirectory = _resolveArray(m_pDirectories, pDirectory->iFirstDirectory, pDirectory->iLastDirectory, sPart, sPath, bThrow);
     if(!pDirectory)
@@ -557,7 +557,7 @@ bool SgaArchive::_resolvePath(const RainString& sPath, _directory_info_t** ppDir
 
   // Find last directory / file
   try { _loadChildren(pDirectory, false); }
-  CATCH_THROW_SIMPLE(L"Unable to load directory details", {if(!bThrow){delete e; return false;}});
+  CATCH_THROW_SIMPLE({ if(!bThrow){delete e; return false;} }, L"Unable to load directory details");
 
   *ppFile = _resolveArray(m_pFiles, pDirectory->iFirstFile, pDirectory->iLastFile, sPart, sPath, false);
   if(*ppFile == 0)

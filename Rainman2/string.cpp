@@ -242,8 +242,8 @@ void RainString::resize(size_type iNewLength, RainChar cDefault) throw(...)
 {
   if(iNewLength < size())
     erase(begin() + iNewLength, end());
-  else if(iNewLength > size())
-    ;//insert(end(), iNewLength - size(), cDefault); TODO
+  //else if(iNewLength > size())
+    //insert(end(), iNewLength - size(), cDefault); TODO
 }
 
 RainString::iterator RainString::erase(RainString::iterator item) throw(...)
@@ -381,7 +381,7 @@ void RainString::printf(const RainString sFormat, ...) throw(...)
   {
     printfV(sFormat, vArgs);
   }
-  CATCH_THROW_SIMPLE(L"Error creating formatted string", {va_end(vArgs);});
+  CATCH_THROW_SIMPLE(va_end(vArgs), L"Error creating formatted string");
   va_end(vArgs);
 }
 
