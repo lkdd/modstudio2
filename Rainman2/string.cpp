@@ -359,6 +359,14 @@ void RainString::printfV(const RainString& sFormat, va_list v) throw(...)
   {
     va_end(vArgs);
     size_t iNewLength = m_pBuffer->iBufferLength * 2 + 8;
+    if(iNewLength >= (1024 * 1024 * 16))
+    {
+      // printf into a 8mb buffer failed, and we're now trying to printf into a 16mb buffer.
+      // in 99.9% of times, this means something has gone horribly wrong
+      // See https://connect.microsoft.com/VisualStudio/feedback/ViewFeedback.aspx?FeedbackID=376809
+      *this = L"[[--Unrenderable formatted message (in " __WFILE__ L") --]]";
+      return;
+    }
     RainChar* pNewChars;
     if(!m_pBuffer->isUsingMiniBuffer())
       delete[] m_pBuffer->pBuffer;
