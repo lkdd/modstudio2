@@ -24,6 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "frmLoadProject.h"
 #include "frmEditor.h"
+#include "stdext.h"
 #include "utility.h"
 #include "application.h"
 #include <wx/dirdlg.h>
@@ -47,6 +48,7 @@ END_EVENT_TABLE()
 
 frmLoadProject::frmLoadProject()
   : wxFrame(0, wxID_ANY, L"Lua Edit", wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE)
+  , m_pPreloadProgress(0)
   , m_iLastColumnSort(-1), m_iSelectedProject(-1)
 {
   wxBoxSizer *pTopSizer = new wxBoxSizer(wxVERTICAL);
@@ -64,12 +66,11 @@ frmLoadProject::frmLoadProject()
   wxBoxSizer *pButtonSizer = new wxBoxSizer(wxHORIZONTAL);
   wxBitmap bmpDonate(wxT("IDB_DONATE"));
   bmpDonate.SetMask(new wxMask(bmpDonate, wxColour(255,0,255)));
-  pButtonSizer->Add(new wxBitmapButton(this, BMP_DONATE, bmpDonate, wxDefaultPosition, wxDefaultSize, 0), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
-  pButtonSizer->AddStretchSpacer(1);
   pButtonSizer->Add(m_pNewButton = new wxButton(this, wxID_NEW, L"&New"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
   pButtonSizer->Add(m_pLoadButton = new wxButton(this, BTN_LOAD, L"&Load"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
+  pButtonSizer->Add(new wxBitmapButton(this, BMP_DONATE, bmpDonate, wxDefaultPosition, wxDefaultSize, 0), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
   pButtonSizer->Add(new wxButton(this, wxID_CLOSE, L"&Quit"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 3);
-  pTopSizer->Add(pButtonSizer, 0, wxALL | wxEXPAND, 0);
+  pTopSizer->Add(pButtonSizer, 0, wxALIGN_RIGHT, 0);
   
   SetBackgroundColour(m_pLoadButton->GetBackgroundColour());
 
@@ -217,8 +218,29 @@ void frmLoadProject::onQuit(wxCommandEvent& e)
   Close();
 }
 
+wxProgressDialog *frmLoadProject::_getPreloadProgressDialog(bool bCreateIfNeeded)
+{
+  if(m_pPreloadProgress)
+    return m_pPreloadProgress;
+  else if(!bCreateIfNeeded)
+    return 0;
+
+  m_pPreloadProgress = new wxProgressDialog(L"Loading project", L"Please wait, loading...", 20, this, wxPD_APP_MODAL | wxPD_SMOOTH);
+  return m_pPreloadProgress;
+}
+
+void frmLoadProject::_cancelPreloadProgressDialog()
+{
+  if(m_pPreloadProgress)
+  {
+    delete m_pPreloadProgress;
+    m_pPreloadProgress = 0;
+  }
+}
+
 void frmLoadProject::_loadEditor(IniFile::Section* pPipelineSection)
 {
+  IniFile::Section* pOriginalSection = pPipelineSection;
   RainString sRootFolder = m_pPipelineFileList->GetValue();
   sRootFolder = sRootFolder.beforeLast('\\') + L"\\";
   std::auto_ptr<FileStoreComposition> pComposition(new FileStoreComposition);
@@ -228,6 +250,7 @@ void frmLoadProject::_loadEditor(IniFile::Section* pPipelineSection)
   bool bNextOwnershipOfStore = false;
   while(pPipelineSection)
   {
+    _getPreloadProgressDialog()->Pulse(wxString(L"Preparing to load pipeline project \'") + implicit_cast<wxString>(pPipelineSection->name()) + L"\'");
     RainString sData = (*pPipelineSection)["DataFinal"];
     if(pReadOnly == 0 && !sData.isEmpty())
     {
@@ -242,6 +265,7 @@ void frmLoadProject::_loadEditor(IniFile::Section* pPipelineSection)
       CATCH_MESSAGE_BOX_1(L"Cannot load %s (cannot mount DataFinal)", pPipelineSection->name().getCharacters(), {
         if(bNextOwnershipOfStore)
           delete pStoreToUse;
+        _cancelPreloadProgressDialog();
         return;
       });
     }
@@ -268,6 +292,7 @@ void frmLoadProject::_loadEditor(IniFile::Section* pPipelineSection)
       CATCH_MESSAGE_BOX_1(L"Cannot load %s (cannot mount DataGeneric)", pPipelineSection->name().getCharacters(), {
         if(bNextOwnershipOfStore)
           delete pStoreToUse;
+        _cancelPreloadProgressDialog();
         return;
       });
     }
@@ -306,18 +331,29 @@ void frmLoadProject::_loadEditor(IniFile::Section* pPipelineSection)
     pDirectory = pComposition->openDirectory(L"Generic\\Attrib\\");
   }
   CATCH_MESSAGE_BOX(L"Cannot load project", {});
-  _loadEditor(pDirectory, pComposition.release());
+  _loadEditor(pDirectory, pComposition.release(), pOriginalSection);
 }
 
-void frmLoadProject::_loadEditor(IDirectory *pDirectory, IFileStore *pFileStore)
+void frmLoadProject::_loadEditor(IDirectory *pDirectory, IFileStore *pFileStore, IniFile::Section* pPipelineSection)
 {
+  _getPreloadProgressDialog()->Pulse(L"Preparing to load Luas...");
   frmLuaEditor* pEditor = 0;
   try
   {
     pEditor = new frmLuaEditor;
+    if(pPipelineSection)
+    {
+      pEditor->setPipeline(pPipelineSection, m_pPipelineFileList->GetValue());
+    }
+    _cancelPreloadProgressDialog(); // setSource has it's own dialog
     pEditor->setSource(pDirectory, pFileStore);
   }
-  CATCH_MESSAGE_BOX(L"Cannot load editor", {delete pEditor; return;});
+  CATCH_MESSAGE_BOX(L"Cannot load editor", {
+    delete pEditor;
+    _cancelPreloadProgressDialog();
+    return;
+  });
+  _cancelPreloadProgressDialog();
   pEditor->Show();
   pEditor->Maximize();
   pEditor->Refresh();

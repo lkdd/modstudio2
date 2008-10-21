@@ -22,55 +22,32 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
+#include "frmCommandLineOptions.h"
+#include "stdext.h"
+#include "utility.h"
 #include "application.h"
-#include "frmLoadProject.h"
-#include <wx/sysopt.h>
 
-IMPLEMENT_APP(LuaEditApp)
-
-IniFile LuaEditApp::Config;
-
-bool LuaEditApp::OnInit()
+void CommandLineParameters::addParameter(RainString sParameter, bool bEnabled)
 {
-  // If we can, force toolbar images to be 32-bit with transparency
-  if(GetComCtl32Version() >= 600 && ::wxDisplayDepth() >= 32)
-    wxSystemOptions::SetOption(wxT("msw.remap"), 2);
-  // Otherwise, simply prevent the colours in toolbar images being changed
-  else
-	  wxSystemOptions::SetOption(wxT("msw.remap"), 0);
-
-  wxInitAllImageHandlers();
-
-  try
-  {
-    Config.setSpecialCharacters('#');
-    if(RainDoesFileExist(L"lua_edit_config.ini"))
-      Config.load(L"lua_edit_config.ini");
-    else
-      Config.clear();
-  }
-  CATCH_MESSAGE_BOX(L"Cannot load config", {});
-
-  try
-  {
-    RgdDictionary::checkStaticHashes();
-  }
-  CATCH_MESSAGE_BOX(L"RGD dictionary code needs updating", {});
-
-  frmLoadProject *pForm = new frmLoadProject();
-  pForm->Show(TRUE);
-  SetTopWindow(pForm);
-
-  return TRUE;
+  m_vParameters.push_back(Parameters::value_type(bEnabled, sParameter));
 }
 
-int LuaEditApp::OnExit()
+void CommandLineParameters::addPlaceholder(RainString sPlaceholder, RainString sValue)
 {
-  try
-  {
-    Config.save(L"lua_edit_config.ini");
-  }
-  CATCH_MESSAGE_BOX(L"Cannot save config", {});
+  m_vPlaceholders[sPlaceholder] = sValue;
+}
 
-  return wxApp::OnExit();
+CommandLineParameters::Parameters& CommandLineParameters::getParameters()
+{
+  return m_vParameters;
+}
+
+CommandLineParameters::Placeholders& CommandLineParameters::getPlaceholders()
+{
+  return m_vPlaceholders;
+}
+
+RainString CommandLineParameters::realise()
+{
+  return L"TODO";
 }

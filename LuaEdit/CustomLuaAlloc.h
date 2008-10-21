@@ -48,19 +48,25 @@ OTHER DEALINGS IN THE SOFTWARE.
 class LuaShortSharpAlloc
 {
 public:
-  LuaShortSharpAlloc();
-  virtual ~LuaShortSharpAlloc();
-
   typedef unsigned char byte;
 
-  byte* alloc(byte* ptr, size_t osize, size_t nsize);
-
-  inline bool isPoolRunningLow() {return m_iAllocatedSmallCount * 2 > small_block_count;}
-
-  static void* allocf(void *ud, void *ptr, size_t osize, size_t nsize);
+  //! Constructor
+               LuaShortSharpAlloc();
+  //! Virtual destructor
+  virtual     ~LuaShortSharpAlloc();
+  //! Allocator function called by Lua
+  /*!
+    Uses ptr as the `this` pointer and forwards the call to alloc()
+  */
+  static void* allocf(void *ud , void *ptr, size_t osize, size_t nsize);
+  //! Allocator function
+         byte* alloc (byte* ptr,            size_t osize, size_t nsize);
+  //! Check if the pool of reserved memory blocks is more than 50% utilised
+  inline bool  isPoolRunningLow() {return m_iAllocatedSmallCount * 2 > small_block_count;}
+  
 protected:
   byte* _allocNextSmall();
-  void _freeSmall(byte* ptr);
+  void  _freeSmall     (byte* ptr);
 
   static const int small_block_size  = 4096; //!< Size, in bytes, of a 'small' memory block
   static const int small_block_count = 8192; //!< The number of 'small' memory blocks to have in the pool
@@ -68,6 +74,6 @@ protected:
   std::allocator<byte> m_oFallbackAllocator;
   byte* m_pSmallBlocks;
   bool* m_bInUse;
-  int m_iNextSmallBlock;
-  int m_iAllocatedSmallCount;
+  int   m_iNextSmallBlock,
+        m_iAllocatedSmallCount;
 };

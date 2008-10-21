@@ -23,6 +23,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "frmEditor.h"
+#include "frmCommandLineOptions.h"
 #include "InheritanceBuilder.h"
 #include "utility.h"
 #include "application.h"
@@ -31,11 +32,15 @@ extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 }
+#include <wx/artprov.h>
 #include <wx/splitter.h>
 #include <wx/utils.h>
 #include <wx/mstream.h>
 #include "TreeCtrlMemory.h"
+#include "DynamicPopupMenu.h"
 #include "stdext.h"
+
+#define NO_REMEMBER_AUI // For debugging
 
 BEGIN_EVENT_TABLE(frmLuaEditor, wxFrame)
   /* order is alphabetical based on event macro and window ID */
@@ -46,8 +51,57 @@ BEGIN_EVENT_TABLE(frmLuaEditor, wxFrame)
   EVT_TREE_ITEM_EXPANDING(TREE_ATTRIB,      frmLuaEditor::onAttribTreeItemExpanding)
   EVT_TREE_SEL_CHANGED(TREE_ATTRIB,         frmLuaEditor::onAttribTreeItemActivate)
   EVT_TOOL(TB_SAVEBIN,                      frmLuaEditor::onSaveBinary)
+  EVT_TOOL(TB_SAVEBIN_BATCH,                frmLuaEditor::onSaveBinaryBatch)
   EVT_TOOL(TB_SAVELUA,                      frmLuaEditor::onSaveLua)
+  EVT_TOOL(TB_SAVELUA_BATCH,                frmLuaEditor::onSaveLuaBatch)
 END_EVENT_TABLE()
+
+class GameAppCommandInfo : public wxObjectRefData
+{
+public:
+  GameAppCommandInfo(wxString sCommand, wxString sName)
+    : m_sCommand(sCommand), m_sName(sName), m_bWrappedInAnything(false)
+  {
+    m_oParameters.addParameter(L"-modname %MODNAME%", true);
+    m_oParameters.addParameter(L"-dev", true);
+    m_oParameters.addParameter(L"-nomovies", true);
+    m_oParameters.addParameter(L"-window", false);
+
+    m_oParameters.addPlaceholder(L"%MODNAME%", L"SomeModName");
+  }
+
+  const wxString& name() const {return m_sName;}
+  CommandLineParameters& parameters() {return m_oParameters;}
+
+  wxObject *wrapInObject()
+  {
+    wxObject *p = new wxObject;
+    if(!m_bWrappedInAnything)
+    {
+      // wxObjectRefData initialises the reference count to 1, so first time round, do not
+      // increment the reference count
+      p->SetRefData(this);
+      m_bWrappedInAnything = true;
+    }
+    else
+    {
+      // This is seriously retarded, and there must be a nicer way of doing it <_<
+      // In order to increment the reference count, Ref must be called, but it can only be
+      // called with an existing object :/
+      wxObject o;
+      o.SetRefData(this);
+      p->Ref(o);
+      o.SetRefData(0);
+    }
+    return p;
+  }
+
+protected:
+  CommandLineParameters m_oParameters;
+  wxString m_sCommand,
+           m_sName;
+  bool m_bWrappedInAnything;
+};
 
 class RecentLuaListData : public wxClientData
 {
@@ -309,32 +363,26 @@ frmLuaEditor::frmLuaEditor()
 
   _initTextControl();
   _initToolbar();
-
-  m_oManager.Update();
-
-  wxString sPerspective = LuaEditApp::Config[L"editor"][L"aui_perspective"].value();
-  if(!sPerspective.IsEmpty())
-    m_oManager.LoadPerspective(sPerspective, true);
 }
 
 wxImage frmLuaEditor::_loadPng(wxString sName) throw(...)
 {
   HRSRC hResource = FindResource(wxGetInstance(), sName, wxT("PNG"));
   if(hResource == 0)
-   THROW_SIMPLE_1(L"Cannot find PNG resource \'%s\'", sName.c_str());
+   THROW_SIMPLE_(L"Cannot find PNG resource \'%s\'", sName.c_str());
 
   HGLOBAL hData = LoadResource(wxGetInstance(), hResource);
   if(hData == 0)
-    THROW_SIMPLE_1(L"Cannot load PNG resource \'%s\'", sName.c_str());
+    THROW_SIMPLE_(L"Cannot load PNG resource \'%s\'", sName.c_str());
 
   const void *pData = LockResource(hData);
   if(pData == 0)
-    THROW_SIMPLE_1(L"Cannot lock PNG resource \'%s\'", sName.c_str());
+    THROW_SIMPLE_(L"Cannot lock PNG resource \'%s\'", sName.c_str());
 
   wxMemoryInputStream oInput(pData, SizeofResource(wxGetInstance(), hResource));
   wxImage oImg;
   if(!oImg.LoadFile(oInput, wxBITMAP_TYPE_PNG))
-    THROW_SIMPLE_1(L"Cannot load PNG resource \'%s\' from stream", sName.c_str());
+    THROW_SIMPLE_(L"Cannot load PNG resource \'%s\' from stream", sName.c_str());
 
   return oImg;
 }
@@ -400,6 +448,11 @@ void frmLuaEditor::onEditorTabChange(wxAuiNotebookEvent &e)
   CATCH_MESSAGE_BOX(L"Error while changing tab", {});
 }
 
+void frmLuaEditor::onSaveLuaBatch(wxCommandEvent &e)
+{
+  ::wxMessageBox(L"Not implemented yet", L"Save Lua Batch", wxOK | wxCENTER | wxICON_ERROR, this);
+}
+
 void frmLuaEditor::onSaveLua(wxCommandEvent &e)
 {
   try
@@ -411,6 +464,11 @@ void frmLuaEditor::onSaveLua(wxCommandEvent &e)
   CATCH_MESSAGE_BOX(L"Cannot save file", return);
 
   ::wxMessageBox(L"File saved", L"Save Lua", wxOK | wxICON_INFORMATION, this);
+}
+
+void frmLuaEditor::onSaveBinaryBatch(wxCommandEvent &e)
+{
+  ::wxMessageBox(L"Not implemented yet", L"Save Binary Batch", wxOK | wxCENTER | wxICON_ERROR, this);
 }
 
 void frmLuaEditor::onSaveBinary(wxCommandEvent &e)
@@ -434,23 +492,177 @@ void frmLuaEditor::onSaveBinary(wxCommandEvent &e)
   ::wxMessageBox(L"TODO", L"Save Binary");
 }
 
-void frmLuaEditor::_initToolbar()
+static RainString ParentFolder(RainString sPath, int iNumLevelsUp = 1)
 {
-  wxToolBar *pToolbar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_FLAT | wxTB_NODIVIDER);
-  pToolbar->SetToolBitmapSize(wxSize(48,48));
+  if(sPath.suffix(1) == L"\\")
+    sPath = sPath.mid(0, sPath.length() - 1);
+  for(; iNumLevelsUp; --iNumLevelsUp)
+  {
+    sPath = sPath.beforeLast('\\');
+  }
+  sPath += L"\\";
+  return sPath;
+}
+
+void frmLuaEditor::setPipeline(IniFile::Section *pPipelineSection, RainString sPipelineFile) throw(...)
+{
+  wxToolBar *pRunToolbar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_FLAT | wxTB_NODIVIDER);
+  pRunToolbar->SetToolBitmapSize(wxSize(48,48));
+
+  // Usually, the pipeline file is in the game folder
+  RainString sAppFolder1 = sPipelineFile.beforeLast('\\') + L"\\";
+  // Sometimes it is not though, in which case two levels up from DataFinal (to remove ModName\Data\) should be it
+  RainString sAppFolder2 = ParentFolder(sAppFolder1 + (*pPipelineSection)[L"DataFinal"], 2);
 
   try
   {
-    pToolbar->AddTool(TB_SAVELUA, wxT("Save Lua")   , wxBitmap(_loadPng(wxT("IDP_SAVELUA"))), wxT("Save the current file as Lua (editing format)"    ) );
-    pToolbar->AddTool(TB_SAVEBIN, wxT("Save Binary"), wxBitmap(_loadPng(wxT("IDP_SAVEBIN"))), wxT("Save the current file as RGD (binary game format)") );
+    _addGameApps(pRunToolbar, sAppFolder1);
+    if(sAppFolder1 != sAppFolder2)
+      _addGameApps(pRunToolbar, sAppFolder2);
+  }
+  CATCH_THROW_SIMPLE(delete pRunToolbar, L"Cannot populate the \'Run\' toolbar");
+
+  if(pRunToolbar->GetToolsCount() == 0)
+  {
+    delete pRunToolbar;
+  }
+  else
+  {
+    pRunToolbar->Realize();
+    m_oManager.AddPane(pRunToolbar, wxAuiPaneInfo().Name(wxT("tbRun")).Caption(wxT("Run")).Top().Fixed().Dock().Row(5).CloseButton(false).ToolbarPane());
+  }
+}
+
+void frmLuaEditor::_addGameApps(wxToolBar *pToolbar, RainString sPath) throw(...)
+{
+  std::auto_ptr<IDirectory> pDirectory(RainOpenDirectory(sPath));
+  for(IDirectory::iterator itr = pDirectory->begin(), end = pDirectory->end(); itr != end; ++itr)
+  {
+    if(itr->name().afterLast('.').compareCaseless(L"exe") == 0)
+    {
+      Win32PEFile oFile;
+      RainString sFullPath = pDirectory->getPath() + itr->name();
+
+      try
+      {
+        oFile.load(sFullPath);
+      }
+      catch(RainException *pE)
+      {
+#ifdef _DEBUG
+        EXCEPTION_MESSAGE_BOX_1(L"Cannot load information on PE file \'%s\'", itr->name().getCharacters(), pE);
+#else
+        delete pE;
+#endif
+        continue;
+      }
+
+      bool bUsesSimEngine = false;
+      for(size_t iLibIndex = 0; !bUsesSimEngine && iLibIndex < oFile.getImportedLibraryCount(); ++iLibIndex)
+      {
+        const RainString& sLibrary = oFile.getImportedLibrary(iLibIndex);
+        if(sLibrary.compareCaseless(L"SimEngine.dll") == 0)
+          bUsesSimEngine = true;
+      }
+      if(bUsesSimEngine)
+      {
+        wxBitmap bmpIcon;
+        wxIcon icoIcon;
+        SHFILEINFO oShellInfo;
+
+        if(SHGetFileInfo(sFullPath.getCharacters(), 0, &oShellInfo, sizeof( SHFILEINFOW ), SHGFI_ICON | SHGFI_SHELLICONSIZE))
+        {
+          icoIcon.SetHICON(oShellInfo.hIcon);
+          bmpIcon.CopyFromIcon(icoIcon);
+        }
+        else
+        {
+          bmpIcon = wxArtProvider::GetBitmap(wxART_EXECUTABLE_FILE, wxART_TOOLBAR);
+          oShellInfo.hIcon = 0;
+        }
+        wxImage imgIcon(bmpIcon.ConvertToImage());
+        if(imgIcon.GetWidth() < 48 && imgIcon.GetHeight() < 48)
+        {
+          imgIcon.Resize(wxSize(48, 48), wxPoint(24 - imgIcon.GetWidth() / 2, 24 - imgIcon.GetHeight() / 2));
+        }
+        else
+        {
+          imgIcon.Rescale(48, 48, wxIMAGE_QUALITY_HIGH);
+        }
+        if(!imgIcon.HasAlpha())
+          imgIcon.InitAlpha();
+        bmpIcon = wxBitmap(imgIcon);
+        if(imgIcon.HasMask())
+          bmpIcon.SetMask(new wxMask(bmpIcon, wxColour(imgIcon.GetMaskRed(), imgIcon.GetMaskGreen(), imgIcon.GetMaskBlue())));
+        if(oShellInfo.hIcon)
+          DestroyIcon(oShellInfo.hIcon);
+
+        int iToolId = pToolbar->AddTool(wxID_ANY, L"", bmpIcon, wxString(L"Launch ") + (wxString)itr->name())->GetId();
+        GameAppCommandInfo *pInfo = new GameAppCommandInfo(sFullPath, itr->name());
+        this->Connect(iToolId, iToolId, wxEVT_COMMAND_TOOL_CLICKED , wxCommandEventHandler(frmLuaEditor::onGameAppClicked     ), pInfo->wrapInObject());
+        this->Connect(iToolId, iToolId, wxEVT_COMMAND_TOOL_RCLICKED, wxCommandEventHandler(frmLuaEditor::onGameAppRightClicked), pInfo->wrapInObject());
+      }
+    }
+  }
+}
+
+void frmLuaEditor::_initToolbar()
+{
+  wxToolBar *pSaveToolbar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTB_FLAT | wxTB_NODIVIDER);
+  pSaveToolbar->SetToolBitmapSize(wxSize(48,48));
+
+  try
+  {
+    pSaveToolbar->AddTool(TB_SAVELUA      , wxT("Save Lua")         , wxBitmap(_loadPng(wxT("IDP_SAVELUA")))   , wxT("Save the current file as Lua (editing format)"));
+    pSaveToolbar->AddTool(TB_SAVELUA_BATCH, wxT("Save All Luas")    , wxBitmap(_loadPng(wxT("IDP_SAVELUAALL"))), wxT("Save all currently modified files as Lua (editing format)"));
+    pSaveToolbar->AddTool(TB_SAVEBIN      , wxT("Save Binary")      , wxBitmap(_loadPng(wxT("IDP_SAVEBIN")))   , wxT("Save the current file as RGD (binary game format)"));
+    pSaveToolbar->AddTool(TB_SAVEBIN_BATCH, wxT("Save All Binaries"), wxBitmap(_loadPng(wxT("IDP_SAVEBINALL"))), wxT("Save all Luas which are newer than their RGD equivalents as RGD (binary game format)"));
   }
   catch(RainException *pE)
   {
     EXCEPTION_MESSAGE_BOX(L"Cannot load toolbar icon(s)", pE);
   }
-  pToolbar->Realize();
+  pSaveToolbar->Realize();
 
-  m_oManager.AddPane(pToolbar, wxAuiPaneInfo().Name(wxT("tbSave")).Caption(wxT("Save")).Top().Fixed().Dock().Row(5).CloseButton(false).ToolbarPane());
+  m_oManager.AddPane(pSaveToolbar, wxAuiPaneInfo().Name(wxT("tbSave")).Caption(wxT("Save")).Top().Fixed().Dock().Row(5).CloseButton(false).ToolbarPane());
+}
+
+void frmLuaEditor::onGameAppClicked(wxCommandEvent &e)
+{
+  ::wxMessageBox(L"Not implemented yet", L"Launch game app", wxICON_ERROR | wxOK | wxCENTER, this);
+}
+
+void frmLuaEditor::onGameAppRightClicked(wxCommandEvent &e)
+{
+  std::map<int, bool*> mapCheckItems;
+  int iConfigureId;
+  GameAppCommandInfo *pCommandInfo = reinterpret_cast<GameAppCommandInfo*>(e.m_callbackUserData->GetRefData());
+  DynamicPopupMenu oMenu(L"Launch " + implicit_cast<wxString>(pCommandInfo->name()));
+
+  for(CommandLineParameters::Parameters::iterator itrParam = pCommandInfo->parameters().getParameters().begin(), itrParamEnd = pCommandInfo->parameters().getParameters().end(); itrParam != itrParamEnd; ++itrParam)
+  {
+    mapCheckItems[oMenu.appendCheckItem(itrParam->second, wxEmptyString, itrParam->first)] = &itrParam->first;
+  }
+  oMenu.appendSeparator();
+  iConfigureId = oMenu.append(L"Configure...");
+
+  oMenu.popup(this);
+
+  if(oMenu.getId() == wxID_ANY)
+    return;
+  else if(mapCheckItems.count(oMenu.getId()))
+  {
+    bool *b = mapCheckItems[oMenu.getId()];
+    *b = !*b;
+  }
+  else if(oMenu.getId() == iConfigureId)
+  {
+    ::wxMessageBox(L"Not implemented yet", L"Configure", wxOK | wxICON_ERROR | wxCENTER, this);
+  }
+  else if(oMenu.getId() == oMenu.getTitleId())
+  {
+    onGameAppClicked(e);
+  }
 }
 
 void frmLuaEditor::onStyleNeeded(wxStyledTextEvent &e)
@@ -760,6 +972,13 @@ void frmLuaEditor::setSource(IDirectory* pRootDirectory, IFileStore *pDirectoryS
   CHECK_ASSERT(pDirectoryStore != 0);
   CHECK_ASSERT(m_pRootDirectory == 0);
 
+  m_oManager.Update();
+#ifndef NO_REMEMBER_AUI
+  wxString sPerspective = LuaEditApp::Config[L"editor"][L"aui_perspective"].value();
+  if(!sPerspective.IsEmpty())
+    m_oManager.LoadPerspective(sPerspective, true);
+#endif
+
   FileStoreComposition *pComposition = CHECK_ALLOCATION(new (std::nothrow) FileStoreComposition);
   pComposition->addFileStore(new ReadOnlyFileStoreAdaptor(pDirectoryStore), L"", L"", 10, true);
   pComposition->addFileStore(new MemoryFileStore, L"", L"", 20, true);
@@ -772,7 +991,7 @@ void frmLuaEditor::setSource(IDirectory* pRootDirectory, IFileStore *pDirectoryS
   {
     _populateInheritanceTree();
   }
-  CATCH_THROW_SIMPLE(L"Cannot build inheritance tree", {});
+  CATCH_THROW_SIMPLE({}, L"Cannot build inheritance tree");
 }
 
 void frmLuaEditor::_populateInheritanceTree()
