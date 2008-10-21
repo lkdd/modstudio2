@@ -102,10 +102,10 @@ void InheritanceBuilder::doBuild() throw(...)
     for(std::map<unsigned long, _item_t*>::iterator itr = m_mapAllItems.begin(); itr != m_mapAllItems.end(); ++itr)
     {
       if(!itr->second->bExists)
-        THROW_SIMPLE_3(L"Lua file \'%s\' was referenced by \'%s\' (and %i other files), but does not itself exist!",
-                       itr->second->sPath.getCharacters(),
-                       itr->second->vChildren[1]->sPath.getCharacters(),
-                       static_cast<int>(itr->second->vChildren.size() - 1));
+        THROW_SIMPLE_(L"Lua file \'%s\' was referenced by \'%s\' (and %i other files), but does not itself exist!",
+                      itr->second->sPath.getCharacters(),
+                      itr->second->vChildren[1]->sPath.getCharacters(),
+                      static_cast<int>(itr->second->vChildren.size() - 1));
     }
   }
 
@@ -150,7 +150,7 @@ void InheritanceBuilder::_recurse(IDirectory* pDirectory, RainString sPath) thro
         pChild = itr->open();
         _recurse(pChild, sPath + itr->name() + L"\\");
       }
-      CATCH_THROW_SIMPLE_1(L"Cannot build inheritance for folder \'%s\' due to sub-folder", sPath.getCharacters(), {delete pChild;});
+      CATCH_THROW_SIMPLE_(delete pChild, L"Cannot build inheritance for folder \'%s\' due to sub-folder", sPath.getCharacters());
       delete pChild;
     }
     else
@@ -164,7 +164,7 @@ void InheritanceBuilder::_recurse(IDirectory* pDirectory, RainString sPath) thro
           pFile = itr->open(FM_Read);
           _doFile(pFile, sPath + itr->name());
         }
-        CATCH_THROW_SIMPLE_1(L"Cannot build inheritance for folder \'%s\' due to file", sPath.getCharacters(), {delete pFile;});
+        CATCH_THROW_SIMPLE_(delete pFile, L"Cannot build inheritance for folder \'%s\' due to file", sPath.getCharacters());
         delete pFile;
       }
     }
@@ -194,7 +194,7 @@ void InheritanceBuilder::_doFile(IFile* pFile, RainString sPath) throw(...)
 
   int iErr = pFile->lua_load(L, "lua file");
   if(iErr)
-    THROW_SIMPLE_2(L"Cannot load lua file \'%s\': %S", sPath.getCharacters(), lua_tostring(L, -1));
+    THROW_SIMPLE_(L"Cannot load lua file \'%s\': %S", sPath.getCharacters(), lua_tostring(L, -1));
 
   Proto *pPrototype = reinterpret_cast<Closure*>(const_cast<void*>(lua_topointer(L, -1)))->l.p;
   const char* sInheritedFileBuffer;
@@ -204,7 +204,7 @@ void InheritanceBuilder::_doFile(IFile* pFile, RainString sPath) throw(...)
   {
     iInheritedFileHash = _getInheritedFile(pPrototype, sInheritedFileBuffer, iInheritedFileLength);
   }
-  CATCH_THROW_SIMPLE_1(L"Cannot determine inheritance for lua file \'%s\'", sPath.getCharacters(), {});
+  CATCH_THROW_SIMPLE_({}, L"Cannot determine inheritance for lua file \'%s\'", sPath.getCharacters());
   if(iInheritedFileLength != 0)
   {
     _item_t *pParentItem = m_mapAllItems[iInheritedFileHash];

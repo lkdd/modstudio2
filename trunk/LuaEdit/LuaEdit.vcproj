@@ -63,7 +63,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="wxmsw28ud_adv.lib wxmsw28ud_aui.lib wxmsw28ud_stc.lib wxmsw28ud_html.lib wxbase28ud_xml.lib wxmsw28ud_xrc.lib wxmsw28ud_core.lib wxbase28ud.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexud.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib oleacc.lib odbc32.lib Rainman2d.lib lua-5.1.4.lib wxcode_msw28ud_propgrid.lib"
+				AdditionalDependencies="wxmsw28ud_adv.lib wxmsw28ud_aui.lib wxmsw28ud_stc.lib wxmsw28ud_html.lib wxbase28ud_xml.lib wxmsw28ud_xrc.lib wxmsw28ud_core.lib wxbase28ud.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexud.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib oleacc.lib odbc32.lib Rainman2d.lib Lua5.1.lib wxcode_msw28ud_propgrid.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;$(WXWIN)\contrib\propgrid\lib\vc_dll&quot;;&quot;E:\CPP\lua-5.1.4\Debug&quot;;E:\CPP\2K5\ModStudio2\lib;&quot;$(WXWIN)\lib\vc_dll&quot;"
 				GenerateDebugInformation="true"
@@ -196,6 +196,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DynamicPopupMenu.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\frmCommandLineOptions.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\frmEditor.cpp"
 				>
 			</File>
@@ -231,6 +239,14 @@
 			</File>
 			<File
 				RelativePath=".\CustomLuaAlloc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DynamicPopupMenu.h"
+				>
+			</File>
+			<File
+				RelativePath=".\frmCommandLineOptions.h"
 				>
 			</File>
 			<File
@@ -292,7 +308,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\save_binary_batch.png"
+				>
+			</File>
+			<File
 				RelativePath=".\save_lua.png"
+				>
+			</File>
+			<File
+				RelativePath=".\save_lua_batch.png"
 				>
 			</File>
 			<File

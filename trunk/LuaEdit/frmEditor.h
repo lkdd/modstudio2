@@ -59,7 +59,9 @@ public:
     LST_RECENT = wxID_HIGHEST + 1,
     NB_EDITORS,
     TB_SAVELUA,
+    TB_SAVELUA_BATCH,
     TB_SAVEBIN,
+    TB_SAVEBIN_BATCH,
     TREE_INHERIT,
     TREE_ATTRIB,
     TXT_CODE,
@@ -68,13 +70,18 @@ public:
   void onAttribTreeItemActivate (wxTreeEvent        &e);
   void onAttribTreeItemExpanding(wxTreeEvent        &e);
   void onEditorTabChange        (wxAuiNotebookEvent &e);
+  void onGameAppClicked         (wxCommandEvent     &e); 
+  void onGameAppRightClicked    (wxCommandEvent     &e);
   void onListItemActivate       (wxCommandEvent     &e); 
   void onResize                 (wxSizeEvent        &e);
   void onSaveBinary             (wxCommandEvent     &e);
+  void onSaveBinaryBatch        (wxCommandEvent     &e);
   void onSaveLua                (wxCommandEvent     &e);
+  void onSaveLuaBatch           (wxCommandEvent     &e);
   void onStyleNeeded            (wxStyledTextEvent  &e);
   void onTreeItemActivate       (wxTreeEvent        &e);
 
+  void setPipeline(IniFile::Section *pPipelineSection, RainString sPipelineFile) throw(...);
   void setSource(IDirectory* pRootDirectory, IFileStore *pDirectoryStore) throw(...);
 
 protected:
@@ -84,6 +91,7 @@ protected:
   void _populatePropertyGrid(LuaAttribTreeData *pData);
   void _doLoadLua(IFile *pFile, RainString sPath);
   wxImage _loadPng(wxString sName) throw(...);
+  void _addGameApps(wxToolBar *pToolbar, RainString sPath) throw(...);
   wxString _getValueName(IAttributeValue* pValue);
   wxPGProperty* _getValueEditor(IAttributeValue* pValue, wxString sName = L"", wxString sNameId = L"");
 
