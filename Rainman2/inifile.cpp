@@ -342,6 +342,11 @@ IniFile::Section::Section()
   m_oEmptyValue.m_pSection = this;
 }
 
+bool IniFile::Section::empty() const throw()
+{
+  return m_pFirstValue == 0;
+}
+
 void IniFile::Section::clear() throw()
 {
   while(m_pFirstValue)

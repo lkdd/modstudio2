@@ -28,12 +28,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define WIDEN(x) WIDEN2(x)
 #define __WFILE__ WIDEN(__FILE__)
 #endif
+#include "api.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <algorithm>
 #include <iterator>
 #include <ostream>
-#include "api.h"
 
 #pragma warning(push)
 #pragma warning(disable: 4996)
@@ -144,6 +144,8 @@ public:
 
   size_t indexOf(RainChar cCharacter, size_t iStartAt = 0, size_t iNotFoundValue = NOT_FOUND) const;
 
+  size_t indexOf(const RainString& sString, size_t iStartAt = 0, size_t iNotFoundValue = NOT_FOUND) const;
+
   RainString trimWhitespace() const throw(...);
 
   //! Obtain a substring of the string
@@ -224,6 +226,8 @@ public:
 
   //! Replace all occurances of a character with a different character
   RainString& replaceAll(RainChar cFind, RainChar cReplace) throw(...);
+
+  RainString& replaceAll(const RainString& sNeedle, const RainString& sReplacement) throw(...);
 
   //! Convert the string to lower-case
   RainString& toLower() throw(...);
@@ -422,6 +426,8 @@ public:
     Returns an iterator to the next item after the range
   */
   iterator erase(iterator range_begin, iterator range_end) throw(...);
+
+  void insert(iterator position, const_iterator to_insert, const_iterator to_insert_end) throw(...);
 
 protected:
   //! Generic compare function

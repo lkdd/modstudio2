@@ -31,6 +31,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
 
+#define _BIND_TO_CURRENT_VCLIBS_VERSION 1
+
 #ifdef RAINMAN2_STATIC
 #define RAINMAN2_API
 #else
