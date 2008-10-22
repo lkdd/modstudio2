@@ -300,6 +300,57 @@ RainString& RainString::replaceAll(RainChar cFind, RainChar cReplace) throw(...)
   return *this;
 }
 
+RainString& RainString::replaceAll(const RainString& sNeedle, const RainString& sReplacement) throw(...)
+{
+  size_t iLookIndex = 0;
+  size_t iCommonLength = std::min(sNeedle.length(), sReplacement.length());
+  while((iLookIndex = indexOf(sNeedle, iLookIndex)) != NOT_FOUND)
+  {
+    _ensureExclusiveBufferAccess();
+    std::copy(sReplacement.begin(), sReplacement.begin() + iCommonLength, begin() + iLookIndex);
+    if(sNeedle.length() < sReplacement.length())
+    {
+      insert(begin() + iLookIndex + iCommonLength, sReplacement.begin() + iCommonLength, sReplacement.end());
+    }
+    else
+    {
+      erase(begin() + iLookIndex + iCommonLength, begin() + iLookIndex + (sNeedle.length() - iCommonLength));
+    }
+    iLookIndex += sReplacement.length();
+  }
+  return *this;
+}
+
+void RainString::insert(iterator position, const_iterator to_insert, const_iterator to_insert_end) throw(...)
+{
+  if(to_insert_end <= to_insert)
+    return;
+  size_t iInsertionLength = to_insert_end - to_insert;
+
+  // Make space at the end of the buffer
+  {
+    size_t iPos = position - begin();
+    _ensureExclusiveBufferAccess();
+    m_pBuffer->upsize(length() + iInsertionLength + 1);
+    position = begin() + iPos;
+  }
+
+  // Shift things to make space in the middle of the buffer
+  for(RainChar *sPointer = end(); sPointer >= position; --sPointer)
+  {
+    sPointer[iInsertionLength] = *sPointer;
+  }
+
+  // Copy the new text in
+  std::copy(to_insert, to_insert_end, position);
+
+  // Update length
+  if(m_pBuffer->isUsingMiniBuffer())
+    m_pBuffer->cLengthUsed += static_cast<RainChar>(iInsertionLength);
+  else
+    m_pBuffer->iLengthUsed += iInsertionLength;
+}
+
 RainString& RainString::toLower() throw(...)
 {
   std::transform(begin(), end(), begin(), towlower);
@@ -335,6 +386,26 @@ size_t RainString::indexOf(RainChar cCharacter, size_t iStartAt, size_t iNotFoun
     return iNotFoundValue;
   else
     return position - begin + iStartAt;
+}
+
+size_t RainString::indexOf(const RainString& sString, size_t iStartAt, size_t iNotFoundValue) const
+{
+  if(sString.length() == 0)
+    return iStartAt;
+
+  size_t iStringLength = sString.length();
+  RainChar cStringInitial = sString[0];
+
+  while((iStartAt = indexOf(cStringInitial, iStartAt, iNotFoundValue)) != iNotFoundValue)
+  {
+    if((iStartAt + iStringLength) <= length())
+    {
+      if(std::equal(sString.begin() + 1, sString.end(), begin() + iStartAt + 1))
+        return iStartAt;
+    }
+  }
+
+  return iStartAt;
 }
 
 RainString RainString::trimWhitespace() const throw(...)
@@ -593,6 +664,8 @@ int RainString::_compare(const RainString& sCompareTo, int(*fnCompare)(const Rai
 {
   const RainChar *pOurChars = getCharacters();
   const RainChar *pTheirChars = sCompareTo.getCharacters();
+
+  // Optimisation case
   if(pOurChars == pTheirChars)
     return 0;
 

@@ -23,9 +23,9 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
-#include <vector>
 #include "api.h"
 #include "file.h"
+#include <vector>
 
 class RAINMAN2_API Win32PEFile
 {

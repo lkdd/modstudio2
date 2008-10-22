@@ -18,8 +18,8 @@ This software is provided 'as-is', without any express or implied
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
-#include <stddef.h>
 #include "api.h"
+#include <stddef.h>
 
 #define TBLS 8
 #define BYFOUR
