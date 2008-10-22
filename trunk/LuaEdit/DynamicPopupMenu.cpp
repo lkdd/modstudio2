@@ -25,26 +25,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "DynamicPopupMenu.h"
 
 DynamicPopupMenu::DynamicPopupMenu()
-  : wxMenu(), m_iIdSelected(wxID_ANY), m_iIdTitle(wxID_ANY)
+  : wxMenu(), m_iIdSelected(wxID_ANY)
 {
   SetEventHandler(this);
-}
-
-DynamicPopupMenu::DynamicPopupMenu(const wxString& sTitle)
-  : wxMenu(sTitle), m_iIdSelected(wxID_ANY), m_iIdTitle(wxID_ANY)
-{
-  SetEventHandler(this);
-  if(GetMenuItemCount() > 0)
-  {
-    wxMenuItem *pTitleItem = FindItemByPosition(0);
-    m_iIdTitle = pTitleItem->GetId();
-    _connect(m_iIdTitle);
-  }
-}
-
-int DynamicPopupMenu::getTitleId()
-{
-  return m_iIdTitle;
 }
 
 int DynamicPopupMenu::append(const wxString& sText, const wxString& sHelpString)

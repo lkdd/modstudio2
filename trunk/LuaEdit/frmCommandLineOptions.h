@@ -53,6 +53,8 @@ public:
   Parameters& getParameters();
   Placeholders& getPlaceholders();
 
+  RainString realiseParameter(RainString sParameter);
+
   RainString realise();
 
 protected:

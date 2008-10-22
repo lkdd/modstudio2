@@ -61,17 +61,28 @@ class GameAppCommandInfo : public wxObjectRefData
 public:
   GameAppCommandInfo(wxString sCommand, wxString sName)
     : m_sCommand(sCommand), m_sName(sName), m_bWrappedInAnything(false)
+    , m_rIniSection(LuaEditApp::Config[L"cmdopt-" + sCommand])
   {
-    m_oParameters.addParameter(L"-modname %MODNAME%", true);
-    m_oParameters.addParameter(L"-dev", true);
-    m_oParameters.addParameter(L"-nomovies", true);
-    m_oParameters.addParameter(L"-window", false);
+    if(m_rIniSection.empty())
+    {
+      m_rIniSection.appendValue(L"-modname %MODNAME%", "true");
+      m_rIniSection.appendValue(L"-dev", "true");
+      m_rIniSection.appendValue(L"-nomovies", "true");
+      m_rIniSection.appendValue(L"-window", "false");
+    }
 
-    m_oParameters.addPlaceholder(L"%MODNAME%", L"SomeModName");
+    for(IniFile::Section::iterator itrValue = m_rIniSection.begin(), itrValueEnd = m_rIniSection.end(); itrValue != itrValueEnd; ++itrValue)
+    {
+      m_oParameters.addParameter(itrValue->key(), itrValue->value() == L"true");
+    }
+
+    m_oParameters.addPlaceholder(L"%MODNAME%", L"ModNameTODO");
   }
 
   const wxString& name() const {return m_sName;}
+  const wxString& command() const {return m_sCommand;}
   CommandLineParameters& parameters() {return m_oParameters;}
+  IniFile::Section& iniSection() {return m_rIniSection;}
 
   wxObject *wrapInObject()
   {
@@ -98,6 +109,7 @@ public:
 
 protected:
   CommandLineParameters m_oParameters;
+  IniFile::Section& m_rIniSection;
   wxString m_sCommand,
            m_sName;
   bool m_bWrappedInAnything;
@@ -629,19 +641,32 @@ void frmLuaEditor::_initToolbar()
 
 void frmLuaEditor::onGameAppClicked(wxCommandEvent &e)
 {
-  ::wxMessageBox(L"Not implemented yet", L"Launch game app", wxICON_ERROR | wxOK | wxCENTER, this);
+  GameAppCommandInfo *pCommandInfo = reinterpret_cast<GameAppCommandInfo*>(e.m_callbackUserData->GetRefData());
+
+  wxString sExecutable = pCommandInfo->command();
+  wxString sRunIn = sExecutable.BeforeLast('\\');
+  wxString sCommandLine = pCommandInfo->parameters().realise();
+
+#ifdef _WIN32
+  ShellExecuteW(0, L"open", sExecutable.c_str(), sCommandLine.c_str(), sRunIn.c_str(), SW_SHOW);
+#else
+  wxExecute(sExecutable + L" " + sCommandLine);
+#endif
 }
 
 void frmLuaEditor::onGameAppRightClicked(wxCommandEvent &e)
 {
-  std::map<int, bool*> mapCheckItems;
-  int iConfigureId;
+  std::map<int, CommandLineParameters::Parameters::value_type*> mapCheckItems;
+  int iConfigureId, iLaunchId;
   GameAppCommandInfo *pCommandInfo = reinterpret_cast<GameAppCommandInfo*>(e.m_callbackUserData->GetRefData());
-  DynamicPopupMenu oMenu(L"Launch " + implicit_cast<wxString>(pCommandInfo->name()));
+  CommandLineParameters& oParams = pCommandInfo->parameters();
+  DynamicPopupMenu oMenu;
 
-  for(CommandLineParameters::Parameters::iterator itrParam = pCommandInfo->parameters().getParameters().begin(), itrParamEnd = pCommandInfo->parameters().getParameters().end(); itrParam != itrParamEnd; ++itrParam)
+  iLaunchId = oMenu.append(L"Launch " + implicit_cast<wxString>(pCommandInfo->name()));
+  oMenu.appendSeparator();
+  for(CommandLineParameters::Parameters::iterator itrParam = oParams.getParameters().begin(), itrParamEnd = oParams.getParameters().end(); itrParam != itrParamEnd; ++itrParam)
   {
-    mapCheckItems[oMenu.appendCheckItem(itrParam->second, wxEmptyString, itrParam->first)] = &itrParam->first;
+    mapCheckItems[oMenu.appendCheckItem(oParams.realiseParameter(itrParam->second), wxEmptyString, itrParam->first)] = &*itrParam;
   }
   oMenu.appendSeparator();
   iConfigureId = oMenu.append(L"Configure...");
@@ -652,14 +677,14 @@ void frmLuaEditor::onGameAppRightClicked(wxCommandEvent &e)
     return;
   else if(mapCheckItems.count(oMenu.getId()))
   {
-    bool *b = mapCheckItems[oMenu.getId()];
-    *b = !*b;
+    bool &b = mapCheckItems[oMenu.getId()]->first;
+    pCommandInfo->iniSection()[ mapCheckItems[oMenu.getId()]->second ] = (b = !b) ? L"true" : L"false";
   }
   else if(oMenu.getId() == iConfigureId)
   {
     ::wxMessageBox(L"Not implemented yet", L"Configure", wxOK | wxICON_ERROR | wxCENTER, this);
   }
-  else if(oMenu.getId() == oMenu.getTitleId())
+  else if(oMenu.getId() == iLaunchId)
   {
     onGameAppClicked(e);
   }

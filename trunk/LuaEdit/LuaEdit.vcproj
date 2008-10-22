@@ -144,7 +144,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="wxmsw28u_adv.lib wxmsw28u_aui.lib wxmsw28u_stc.lib wxmsw28u_html.lib wxbase28u_xml.lib wxmsw28u_xrc.lib wxmsw28u_core.lib wxbase28u.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregexu.lib wxexpat.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib oleacc.lib odbc32.lib Rainman2.lib Lua5.1.lib wxcode_msw28u_propgrid.lib"
+				AdditionalDependencies="wxmsw28u_adv.lib wxmsw28u_aui.lib wxmsw28u_stc.lib wxmsw28u_core.lib wxbase28u.lib wxcode_msw28u_propgrid.lib Rainman2.lib Lua5.1.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib oleacc.lib odbc32.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(WXWIN)\lib\vc_dll&quot;;&quot;$(WXWIN)\contrib\propgrid\lib\vc_dll&quot;;E:\CPP\2K5\ModStudio2\lib;&quot;E:\CPP\lua-5.1.4\release&quot;"
 				GenerateDebugInformation="true"
