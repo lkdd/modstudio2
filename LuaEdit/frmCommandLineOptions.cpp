@@ -47,7 +47,24 @@ CommandLineParameters::Placeholders& CommandLineParameters::getPlaceholders()
   return m_vPlaceholders;
 }
 
+RainString CommandLineParameters::realiseParameter(RainString sParameter)
+{
+  for(Placeholders::iterator itr = m_vPlaceholders.begin(), itrEnd = m_vPlaceholders.end(); itr != itrEnd; ++itr)
+  {
+    sParameter.replaceAll(itr->first, itr->second);
+  }
+  return sParameter;
+}
+
 RainString CommandLineParameters::realise()
 {
-  return L"TODO";
+  RainString sCommandLine;
+
+  for(Parameters::iterator itr = m_vParameters.begin(), itrEnd = m_vParameters.end(); itr != itrEnd; ++itr)
+  {
+    if(itr->first)
+      sCommandLine = sCommandLine + L" " + realiseParameter(itr->second);
+  }
+
+  return sCommandLine;
 }

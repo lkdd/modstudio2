@@ -41,9 +41,7 @@ class DynamicPopupMenu : public wxMenu
 {
 public:
   DynamicPopupMenu();
-  DynamicPopupMenu(const wxString& sTitle);
 
-  int getTitleId();
   int getId();
 
   int append(const wxString& sText, const wxString& sHelpString = wxEmptyString);
@@ -56,6 +54,5 @@ protected:
   int  _connect(int iID);
   void _onClick(wxCommandEvent &e);
 
-  int m_iIdSelected,
-      m_iIdTitle;
+  int m_iIdSelected;
 };

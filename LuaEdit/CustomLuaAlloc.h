@@ -23,6 +23,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
+#include "utility.h"
 #include <memory>
 
 //! Memory allocator for Lua, intended to be used during the inheritance building process
