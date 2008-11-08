@@ -504,17 +504,7 @@ void frmLuaEditor::onSaveBinary(wxCommandEvent &e)
   ::wxMessageBox(L"TODO", L"Save Binary");
 }
 
-static RainString ParentFolder(RainString sPath, int iNumLevelsUp = 1)
-{
-  if(sPath.suffix(1) == L"\\")
-    sPath = sPath.mid(0, sPath.length() - 1);
-  for(; iNumLevelsUp; --iNumLevelsUp)
-  {
-    sPath = sPath.beforeLast('\\');
-  }
-  sPath += L"\\";
-  return sPath;
-}
+
 
 void frmLuaEditor::setPipeline(IniFile::Section *pPipelineSection, RainString sPipelineFile) throw(...)
 {
@@ -524,7 +514,7 @@ void frmLuaEditor::setPipeline(IniFile::Section *pPipelineSection, RainString sP
   // Usually, the pipeline file is in the game folder
   RainString sAppFolder1 = sPipelineFile.beforeLast('\\') + L"\\";
   // Sometimes it is not though, in which case two levels up from DataFinal (to remove ModName\Data\) should be it
-  RainString sAppFolder2 = ParentFolder(sAppFolder1 + (*pPipelineSection)[L"DataFinal"], 2);
+  RainString sAppFolder2 = GetParentFolder(sAppFolder1 + (*pPipelineSection)[L"DataFinal"], 2);
 
   try
   {

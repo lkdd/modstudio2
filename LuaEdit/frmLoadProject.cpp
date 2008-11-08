@@ -23,6 +23,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "frmLoadProject.h"
+#include "frmNewProject.h"
 #include "frmEditor.h"
 #include "stdext.h"
 #include "utility.h"
@@ -120,22 +121,9 @@ void frmLoadProject::onPipelineFilesSelect(wxCommandEvent& e)
 
 void frmLoadProject::onBrowse(wxCommandEvent& e)
 {
-  std::auto_ptr<wxFileDialog> pBrowser(new wxFileDialog(this, L"Choose the pipeline file", wxEmptyString, wxEmptyString, L"Pipeline files (pipeline.ini)|pipeline.ini|All files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST));
-  if(!m_pPipelineFileList->GetValue().IsEmpty())
+  std::auto_ptr<PipelineFileOpenDialog> pBrowser(new PipelineFileOpenDialog(this, m_pPipelineFileList));
+  if(pBrowser->show())
   {
-    wxFileName oFileName(m_pPipelineFileList->GetValue());
-    pBrowser->SetDirectory(oFileName.GetPath());
-    pBrowser->SetFilename(oFileName.GetFullName());
-    if(oFileName.GetFullName().CmpNoCase(L"pipeline.ini") != 0)
-      pBrowser->SetFilterIndex(1);
-  }
-  if(pBrowser->ShowModal() == wxID_OK)
-  {
-    int iExistingPosition = m_pPipelineFileList->FindString(pBrowser->GetPath(), false);
-    if(iExistingPosition != wxNOT_FOUND)
-      m_pPipelineFileList->Delete(iExistingPosition);
-    m_pPipelineFileList->Insert(pBrowser->GetPath(), 0);
-    m_pPipelineFileList->SetSelection(0);
     _refreshProjectList();
   }
 }
@@ -176,7 +164,8 @@ void frmLoadProject::onLoad(wxCommandEvent &e)
 
 void frmLoadProject::onNew(wxCommandEvent& e)
 {
-  ::wxMessageBox(L"Not implemented yet, sorry", L"New Pipeline Project", wxOK | wxCENTER | wxICON_ERROR, this);
+  NewPipelineProjectWizard oWizard(this);
+  oWizard.RunWizard();
 }
 
 static int wxCALLBACK ColumnAlphaSort(IniFile::Section *pProject1, IniFile::Section *pProject2, std::pair<long, bool>* pData)

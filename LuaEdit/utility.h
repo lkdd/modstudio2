@@ -37,9 +37,22 @@ OTHER DEALINGS IN THE SOFTWARE.
 #endif
 // ----------------------------
 #include <rainman2.h>
+#include <wx/filedlg.h>
 extern "C" {
 #include <lua.h>
 }
 
 void luaX_pushrstring(lua_State *L, const RainString& s);
 void luaX_pushwstring(lua_State *L, const wchar_t* s);
+RainString GetParentFolder(RainString sPath, int iNumLevelsUp = 1);
+
+class PipelineFileOpenDialog : public wxFileDialog
+{
+public:
+  PipelineFileOpenDialog(wxWindow *pParent, wxComboBox *pFileList);
+
+  bool show();
+
+protected:
+  wxComboBox *m_pFileList;
+};
