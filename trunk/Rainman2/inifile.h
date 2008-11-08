@@ -138,6 +138,7 @@ public:
 
     Value& operator[](const RainString& sKey);
     const Value& operator[](const RainString& sKey) const;
+    bool hasValue(const RainString& sKey, bool bReturnValueOnBlank = true) const;
 
     Value& appendValue(const RainString& sKey, const RainString& sValue);
 
