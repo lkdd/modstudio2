@@ -37,4 +37,43 @@ OTHER DEALINGS IN THE SOFTWARE.
 #endif
 // ----------------------------
 #include <Rainman2.h>
+#include <wx/wizard.h>
 
+class NewPipelineProjectWizard : public wxWizard
+{
+public:
+  NewPipelineProjectWizard(wxWindow* pParent, int iID = wxID_ANY);
+
+  bool RunWizard();
+
+  class WelcomePage : public wxWizardPageSimple
+  {
+  public:
+    WelcomePage(NewPipelineProjectWizard* pWizard);
+  };
+
+  class GamePipelineSelect : public wxWizardPageSimple
+  {
+  public:
+    GamePipelineSelect(NewPipelineProjectWizard* pWizard);
+
+    enum
+    {
+      BTN_BROWSEPIPELINE = wxID_HIGHEST + 1,
+      BTN_BROWSEGAMEFOLDER,
+      CMB_PIPELINES,
+    };
+
+    void onBrowsePipeline  (wxCommandEvent& e);
+    void onPipelineSelect  (wxCommandEvent& e);
+    void onBrowseGameFolder(wxCommandEvent& e);
+
+  protected:
+    wxComboBox *m_pPipelineFileList;
+    wxTextCtrl *m_pGameFolder;
+
+    static wxString _findGameFolder(wxString sPipelineFile);
+
+    DECLARE_EVENT_TABLE();
+  };
+};
