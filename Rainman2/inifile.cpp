@@ -405,6 +405,23 @@ const IniFile::Section::Value& IniFile::Section::operator[](const RainString& sK
   }
 }
 
+bool IniFile::Section::hasValue(const RainString& sKey, bool bReturnValueOnBlank) const
+{
+  map_type::const_iterator itr = m_mapValues.find(sKey);
+  if(itr == m_mapValues.end())
+  {
+    return false;
+  }
+  else if(bReturnValueOnBlank)
+  {
+    return true;
+  }
+  else
+  {
+    return !itr->second->value().isEmpty();
+  }
+}
+
 IniFile::Section::Value::Value()
 {
   m_pPrev = 0;
