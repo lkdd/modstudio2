@@ -138,14 +138,17 @@ public:
   //! Replace current string with a different one
   RainString& operator= (const RainString&) throw();
 
+  //! Operator to seamlessly convert a RainString to a wxString
   operator wxString() const;
 
+  //! Default value returned by the indexOf() functions to indicate that the search string was not found
   static const size_t NOT_FOUND = static_cast<size_t>(-1);
 
   size_t indexOf(RainChar cCharacter, size_t iStartAt = 0, size_t iNotFoundValue = NOT_FOUND) const;
 
   size_t indexOf(const RainString& sString, size_t iStartAt = 0, size_t iNotFoundValue = NOT_FOUND) const;
 
+  //! Obtain a copy of the string with all whitespace characters removed from both ends
   RainString trimWhitespace() const throw(...);
 
   //! Obtain a substring of the string

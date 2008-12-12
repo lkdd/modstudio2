@@ -90,10 +90,29 @@ public:
   */
   const char* hashToAsciiNoThrow(unsigned long iHash, size_t* pLength = NULL) throw();
 
+  //! Try to get the unicode version of the string which hashes to a given value
+  /*!
+    \param iHash The hash code to find a string for
+    \return A valid RainString pointer
+
+    If the hash is not known, then an exception is thrown. This function operates in constant
+    time - it does not try to brute force the hash if it is not known. Returns the same value
+    as hashToAscii(), except extended to unicode and in the form of a RainString.
+  */
   const RainString* hashToString(unsigned long iHash) throw(...);
+
+  //! Try to get the unicode version of the string which hashes to a given value
+  /*!
+    Same as hashToString(), except NULL is returned if the hash is not known, rather than an
+    exception being thrown.
+  */
   const RainString* hashToStringNoThrow(unsigned long iHash) throw();
 
   //! Hash of "$REF", an important entry in RGD tables, often treated specially
+  /*!
+    checkStaticHashes() should be called in application init to ensure that this value
+    matches the runtime-calculated hash of "$REF"
+  */
   static const unsigned long _REF = 0x49D60FAE;
 
   static void checkStaticHashes() throw(...);
