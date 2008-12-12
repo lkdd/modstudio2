@@ -210,8 +210,17 @@ public:
     setType(VT_String);
     _checkConst();
     lua_State *L = m_pFile->getCache()->getLuaState();
+    lua_checkstack(L, 8);
     lua_pushlightuserdata(L, reinterpret_cast<void*>(m_pFile));
     lua_gettable(L, LUA_REGISTRYINDEX);
+    if(lua_type(L, -1) == LUA_TNIL)
+    {
+      lua_pop(L, 1);
+      lua_newtable(L);
+      lua_pushlightuserdata(L, reinterpret_cast<void*>(m_pFile));
+      lua_pushvalue(L, -2);
+      lua_settable(L, LUA_REGISTRYINDEX);
+    }
     luaL_Buffer b;
     luaL_buffinit(L, &b);
     for(size_t i = 0; i < sValue.length(); ++i)
@@ -256,14 +265,14 @@ public:
     for(; pTable; pTable = pTable->pInheritFrom)
     {
       if(pTable->mapContents.count(m_iName))
-        goto stage_2;
-    }
-    return 0;
-stage_2:
-    for(pTable = pTable->pInheritFrom; pTable; pTable = pTable->pInheritFrom)
-    {
-      if(pTable->mapContents.count(m_iName))
-        return pTable;
+      {
+        for(pTable = pTable->pInheritFrom; pTable; pTable = pTable->pInheritFrom)
+        {
+          if(pTable->mapContents.count(m_iName))
+            return pTable;
+        }
+        return 0;
+      }
     }
     return 0;
   }
