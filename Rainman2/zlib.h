@@ -23,28 +23,4 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
-#pragma warning (push)
-#include "../api.h"
-#include "../archive.h"
-#include "../attributes.h"
-#include "../binaryattrib.h"
-#include "../buffering_streams.h"
-#include "../exception.h"
-#include "../exception_dialog.h"
-#include "../file.h"
-#include "../filestore_adaptors.h"
-#include "../filestore_composition.h"
-#include "../hash.h"
-#include "../inifile.h"
-#include "../luattrib.h"
-#include "../mem_fs.h"
-#include "../memfile.h"
-// new_trace.h is for internal use only
-// rainman2.h is this file
-// resource.h is for internal use only
-#include "../rgd_dict.h"
-#include "../string.h"
-#include "../va_copy.h"
-#include "../win32pe.h"
-#include "../zlib.h"
-#pragma warning (pop)
+#include "../../../zLib123/zlib.h"

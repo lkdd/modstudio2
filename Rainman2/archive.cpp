@@ -27,6 +27,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "hash.h"
 #include <memory.h>
 #include <string.h>
+#include <windows.h>
 
 struct _entry_point_raw_t
 {
@@ -110,19 +111,23 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
     pSgaFile->readArray(m_oFileHeader.sIdentifier, 8);
     if(strncmp(m_oFileHeader.sIdentifier, "_ARCHIVE", 8) != 0)
       THROW_SIMPLE(L"Identifier is not _ARCHIVE");
-    pSgaFile->readOne(m_oFileHeader.iVersion);
-    if(m_oFileHeader.iVersion != 2 && m_oFileHeader.iVersion != 4)
-      throw new RainException(__WFILE__, __LINE__, 0, L"Only version 2 or 4 SGA archives are supported, not version %lu. Please show this archive to corsix@corsix.org", m_oFileHeader.iVersion);
+    pSgaFile->readOne(m_oFileHeader.iVersionMajor);
+    pSgaFile->readOne(m_oFileHeader.iVersionMinor);
+    if((m_oFileHeader.iVersionMajor == 2 && m_oFileHeader.iVersionMinor == 0) ||
+       (m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor <= 1) )
+    {}
+    else
+      throw new RainException(__WFILE__, __LINE__, 0, L"Only version 2.0, 4.0 or 4.1 SGA archives are supported, not version %u.%u - Please show this archive to corsix@corsix.org", m_oFileHeader.iVersionMajor, m_oFileHeader.iVersionMinor);
     pSgaFile->readArray(m_oFileHeader.iContentsMD5, 4);
     pSgaFile->readArray(m_oFileHeader.sArchiveName, 64);
     pSgaFile->readArray(m_oFileHeader.iHeaderMD5, 4);
     pSgaFile->readOne(m_oFileHeader.iDataHeaderSize);
     pSgaFile->readOne(m_oFileHeader.iDataOffset);
-    if(m_oFileHeader.iVersion == 4)
+    if(m_oFileHeader.iVersionMajor == 4)
     {
       pSgaFile->readOne(m_oFileHeader.iPlatform);
       if(m_oFileHeader.iPlatform != 1)
-        throw new RainException(__WFILE__, __LINE__, 0, L"Only platform type 1 SGA archives are supported, not version %lu. Please show this archive to corsix@corsix.org", m_oFileHeader.iPlatform);
+        throw new RainException(__WFILE__, __LINE__, 0, L"Only win32/x86 (platform #1) SGA archives are supported, not platform #%lu. Please show this archive to corsix@corsix.org", m_oFileHeader.iPlatform);
     }
     else
       m_oFileHeader.iPlatform = 1;
@@ -156,14 +161,55 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
   }
   CATCH_THROW_SIMPLE(_cleanSelf(), L"Cannot load data header overview");
 
-  try
+  if(m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor == 1)
   {
-    pSgaFile->seek(m_iDataHeaderOffset + m_oFileHeader.iStringOffset, SR_Start);
-    size_t iStringsLength = m_oFileHeader.iDataHeaderSize - m_oFileHeader.iStringOffset;
-    CHECK_ALLOCATION(m_sStringBlob = new (std::nothrow) char[iStringsLength]);
-    pSgaFile->readArray(m_sStringBlob, iStringsLength);
+    // This code reverse-engineered from CoH:Online's Filesystem.dll
+    HCRYPTPROV hCryptoProvider = 0;
+    HCRYPTKEY hCryptoKey = 0;
+    unsigned char* pKeyData = 0;
+    try
+    {
+      pSgaFile->seek(m_iDataHeaderOffset + m_oFileHeader.iStringOffset, SR_Start);
+      unsigned long iKeyLength;
+      pSgaFile->readOne(iKeyLength);
+      CHECK_ALLOCATION(pKeyData = new (std::nothrow) unsigned char[iKeyLength]);
+      pSgaFile->readArray(pKeyData, iKeyLength);
+      unsigned long iStringsLength;
+      pSgaFile->readOne(iStringsLength);
+      CHECK_ALLOCATION(m_sStringBlob = new (std::nothrow) char[iStringsLength]);
+      pSgaFile->readArray(m_sStringBlob, iStringsLength);
+
+      if(CryptAcquireContext(&hCryptoProvider, NULL, L"Microsoft Enhanced Cryptographic Provider v1.0", PROV_RSA_FULL, CRYPT_VERIFYCONTEXT) == FALSE)
+        THROW_SIMPLE(L"Cannot acquire cryptographic context from Windows");
+      if(CryptImportKey(hCryptoProvider, pKeyData, iKeyLength, NULL, 0, &hCryptoKey) == FALSE)
+        THROW_SIMPLE(L"Cannot import cryptographic key from archive");
+      if(CryptDecrypt(hCryptoKey, NULL, TRUE, 0, reinterpret_cast<BYTE*>(m_sStringBlob), &iStringsLength) == FALSE)
+        THROW_SIMPLE(L"Could not decrypt archive\'s string table");
+    }
+    CATCH_THROW_SIMPLE({
+      if(hCryptoKey)
+        CryptDestroyKey(hCryptoKey);
+      if(hCryptoProvider)
+        CryptReleaseContext(hCryptoProvider, 0);
+      if(pKeyData)
+        delete[] pKeyData;
+      _cleanSelf();
+    }, L"Cannot load file and directory names");
+    CryptDestroyKey(hCryptoKey);
+    CryptReleaseContext(hCryptoProvider, 0);
+    delete[] pKeyData;
   }
-  CATCH_THROW_SIMPLE(_cleanSelf(), L"Cannot load file and directory names");
+  else
+  {
+    try
+    {
+      pSgaFile->seek(m_iDataHeaderOffset + m_oFileHeader.iStringOffset, SR_Start);
+      size_t iStringsLength = m_oFileHeader.iDataHeaderSize - m_oFileHeader.iStringOffset;
+      CHECK_ALLOCATION(m_sStringBlob = new (std::nothrow) char[iStringsLength]);
+      pSgaFile->readArray(m_sStringBlob, iStringsLength);
+    }
+    CATCH_THROW_SIMPLE(_cleanSelf(), L"Cannot load file and directory names");
+  }
 }
 
 bool SgaArchive::initNoThrow(IFile* pSgaFile, bool bTakePointerOwnership) throw()
@@ -364,7 +410,16 @@ void SgaArchive::_loadEntryPointsUpTo(unsigned short int iEnsureLoaded) throw(..
         m_pRawFile->readOne(oRaw.iLastDirectory);
         m_pRawFile->readOne(oRaw.iFirstFile);
         m_pRawFile->readOne(oRaw.iLastFile);
-        m_pRawFile->readOne(oRaw.iFolderOffset);
+        if(m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor == 1)
+        {
+          unsigned short iFolderOffset;
+          m_pRawFile->readOne(iFolderOffset);
+          oRaw.iFolderOffset = iFolderOffset;
+        }
+        else
+        {
+          m_pRawFile->readOne(oRaw.iFolderOffset);
+        }
 
         m_pEntryPoints[iToLoad].sName = oRaw.sDirectoryName;
         m_pEntryPoints[iToLoad].sPath = m_pEntryPoints[iToLoad].sName + L"\\";
@@ -500,9 +555,9 @@ void SgaArchive::_loadFilesUpTo(unsigned short int iEnsureLoaded) throw(...)
   if(iFirstToLoad <= iEnsureLoaded)
   {
     CHECK_RANGE_LTMAX((unsigned short)0, iEnsureLoaded, m_oFileHeader.iFileCount);
-    if(m_oFileHeader.iVersion == 2)
+    if(m_oFileHeader.iVersionMajor == 2)
       _loadFilesUpTo_v2(iFirstToLoad, iEnsureLoaded);
-    else if(m_oFileHeader.iVersion == 4)
+    else if(m_oFileHeader.iVersionMajor == 4)
       _loadFilesUpTo_v4(iFirstToLoad, iEnsureLoaded);
     else
       THROW_SIMPLE(L"Unsupported SGA version for file info");

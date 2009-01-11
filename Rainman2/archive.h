@@ -61,7 +61,8 @@ protected:
   struct _file_header_raw_t
   {
     char sIdentifier[8];
-    unsigned long iVersion;
+    unsigned short iVersionMajor;
+    unsigned short iVersionMinor;
     long iContentsMD5[4];
     wchar_t sArchiveName[64];
     long iHeaderMD5[4];

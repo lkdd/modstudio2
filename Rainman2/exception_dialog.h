@@ -41,6 +41,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <wx/listctrl.h>
 #include <wx/statline.h>
 #include "exception.h"
+#pragma warning(push)
+#pragma warning(disable: 4275) // non dll-interface class used as base
 
 class RAINMAN2_API RainExceptionDialog : public wxDialog
 {
@@ -75,3 +77,4 @@ private:
 #define EXCEPTION_MESSAGE_BOX_1(message, a1, e) RainExceptionDialog::show(new RainException(__WFILE__, __LINE__, e, message, a1));
 #define CATCH_MESSAGE_BOX(message, cleanup) catch (RainException *pRainError) { EXCEPTION_MESSAGE_BOX(message, pRainError); cleanup; }
 #define CATCH_MESSAGE_BOX_1(message, a1, cleanup) catch (RainException *pRainError) { EXCEPTION_MESSAGE_BOX_1(message, a1, pRainError); cleanup; }
+#pragma warning(pop)
