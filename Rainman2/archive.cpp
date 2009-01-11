@@ -325,7 +325,7 @@ public:
       m_pArchive->_loadFilesUpTo((unsigned short)iItemIndex);
       SgaArchive::_file_info_t* pInfo = m_pArchive->m_pFiles + iItemIndex;
       if(oDetails.oFields.name)
-        oDetails.sName = pInfo->sName;
+        oDetails.sName = RainString(m_pArchive->m_sStringBlob + pInfo->iName); //pInfo->sName;
       if(oDetails.oFields.dir)
         oDetails.bIsDirectory = false;
       if(oDetails.oFields.size)
@@ -509,7 +509,7 @@ void SgaArchive::_loadFilesUpTo_v2(unsigned short int iFirstToLoad, unsigned sho
       m_pRawFile->readOne(oRaw.iDataLengthCompressed);
       m_pRawFile->readOne(oRaw.iDataLength);
 
-      m_pFiles[iToLoad].sName = RainString(m_sStringBlob + oRaw.iNameOffset);
+      m_pFiles[iToLoad].iName = oRaw.iNameOffset; //RainString(m_sStringBlob + oRaw.iNameOffset);
       m_pFiles[iToLoad].iDataOffset = oRaw.iDataOffset;
       m_pFiles[iToLoad].iDataLength = oRaw.iDataLength;
       m_pFiles[iToLoad].iDataLengthCompressed = oRaw.iDataLengthCompressed;
@@ -534,7 +534,7 @@ void SgaArchive::_loadFilesUpTo_v4(unsigned short int iFirstToLoad, unsigned sho
       m_pRawFile->readOne(oRaw.iModificationTime);
       m_pRawFile->readOne(oRaw.iFlags16);
 
-      m_pFiles[iToLoad].sName = RainString(m_sStringBlob + oRaw.iNameOffset);
+      m_pFiles[iToLoad].iName = oRaw.iNameOffset; //RainString(m_sStringBlob + oRaw.iNameOffset);
       m_pFiles[iToLoad].iDataOffset = oRaw.iDataOffset;
       m_pFiles[iToLoad].iDataLength = oRaw.iDataLength;
       m_pFiles[iToLoad].iDataLengthCompressed = oRaw.iDataLengthCompressed;

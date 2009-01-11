@@ -212,7 +212,7 @@ public:
       not mark the end of the result)
     \param ... The parameters for the format
   */
-  void printf(const RainString sFormat, ...) throw(...);
+  RainString& printf(const RainString sFormat, ...) throw(...);
 
   //! Replace the string with a formatted expression
   /*!
@@ -225,7 +225,7 @@ public:
       not mark the end of the result)
     \param args The parameters for the format
   */
-  void printfV(const RainString& sFormat, va_list args) throw(...);
+  RainString& printfV(const RainString& sFormat, va_list args) throw(...);
 
   //! Replace all occurances of a character with a different character
   RainString& replaceAll(RainChar cFind, RainChar cReplace) throw(...);
@@ -342,6 +342,8 @@ public:
     Embedded \0 characters are handled correctly, unlike wcsicmp
   */
   int compareCaseless(const RainString& sCompareTo) const throw();
+
+  int compareCaseless(const char* sCompareTo) const throw();
 
   // Typedefs required to act as an STL container
   typedef RainChar value_type;

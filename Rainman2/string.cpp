@@ -420,7 +420,7 @@ RainString RainString::trimWhitespace() const throw(...)
   return mid(iBegin, iEnd - iBegin);
 }
 
-void RainString::printfV(const RainString& sFormat, va_list v) throw(...)
+RainString& RainString::printfV(const RainString& sFormat, va_list v) throw(...)
 {
   _ensureExclusiveBufferAccess();
   int iLength;
@@ -436,7 +436,7 @@ void RainString::printfV(const RainString& sFormat, va_list v) throw(...)
       // in 99.9% of times, this means something has gone horribly wrong
       // See https://connect.microsoft.com/VisualStudio/feedback/ViewFeedback.aspx?FeedbackID=376809
       *this = L"[[--Unrenderable formatted message (in " __WFILE__ L") --]]";
-      return;
+      return *this;
     }
     RainChar* pNewChars;
     if(!m_pBuffer->isUsingMiniBuffer())
@@ -449,10 +449,14 @@ void RainString::printfV(const RainString& sFormat, va_list v) throw(...)
     RainVaCopy(vArgs, v);
   }
   va_end(vArgs);
-  m_pBuffer->iLengthUsed = iLength;
+  if(m_pBuffer->isUsingMiniBuffer())
+    m_pBuffer->cLengthUsed = static_cast<RainChar>(iLength);
+  else
+    m_pBuffer->iLengthUsed = iLength;
+  return *this;
 }
 
-void RainString::printf(const RainString sFormat, ...) throw(...)
+RainString& RainString::printf(const RainString sFormat, ...) throw(...)
 {
   va_list vArgs;
   va_start(vArgs, sFormat);
@@ -462,6 +466,7 @@ void RainString::printf(const RainString sFormat, ...) throw(...)
   }
   CATCH_THROW_SIMPLE(va_end(vArgs), L"Error creating formatted string");
   va_end(vArgs);
+  return *this;
 }
 
 RainChar* RainString::_commonInit(size_t iLength)
@@ -697,6 +702,25 @@ int RainString::compare(const RainString& sCompareTo) const throw()
 int RainString::compareCaseless(const RainString& sCompareTo) const throw()
 {
   return _compare(sCompareTo, _wcsicmp);
+}
+
+int RainString::compareCaseless(const char* sCompareTo) const throw()
+{
+  size_t iLength = length();
+  const wchar_t* pChars = getCharacters();
+  size_t i;
+  for(i = 0; i < iLength && sCompareTo[i]; ++i)
+  {
+    int iStatus = tolower(pChars[i]) - tolower(sCompareTo[i]);
+    if(iStatus != 0)
+      return iStatus;
+  }
+  if(i == iLength && sCompareTo[i] == 0)
+    return 0;
+  else if(i == iLength)
+    return -1;
+  else
+    return 1;
 }
 
 RainString RainString::mid(size_t iStart, size_t iLength) const throw(...)
