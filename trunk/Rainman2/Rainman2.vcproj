@@ -43,7 +43,7 @@
 				AdditionalOptions="/MP4"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;E:\CPP\lua-5.1.4\src&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\propgrid\include&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include\msvc&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1;_SCL_SECURE_NO_WARNINGS"
+				PreprocessorDefinitions="WIN32;_DEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1;_SCL_SECURE_NO_WARNINGS;ZLIB_DLL"
 				GeneratePreprocessedFile="0"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
@@ -125,7 +125,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="&quot;E:\CPP\lua-5.1.4\src&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\propgrid\include&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include\msvc&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1;_SCL_SECURE_NO_WARNINGS"
+				PreprocessorDefinitions="WIN32;NDEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1;_SCL_SECURE_NO_WARNINGS;ZLIB_DLL"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -262,6 +262,58 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="zLib"
+				>
+				<File
+					RelativePath="..\..\..\zLib123\adler32.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\compress.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\crc32.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\deflate.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\gzio.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\infback.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\inffast.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\inflate.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\inftrees.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\trees.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\uncompr.c"
+					>
+				</File>
+				<File
+					RelativePath="..\..\..\zLib123\zutil.c"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -373,6 +425,10 @@
 				</File>
 				<File
 					RelativePath=".\win32pe.h"
+					>
+				</File>
+				<File
+					RelativePath=".\zlib.h"
 					>
 				</File>
 			</Filter>
