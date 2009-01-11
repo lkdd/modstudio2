@@ -514,7 +514,7 @@ void IniFile::load(IFile* pFile) throw(...)
   } while(!oFile.isEOF());
 }
 
-void IniFile::load(RainString sFile) throw(...)
+void IniFile::load(const RainString& sFile) throw(...)
 {
   IFile* pFile = 0;
   try
@@ -560,7 +560,7 @@ void IniFile::save(IFile* pFile) throw(...)
   }
 }
 
-void IniFile::save(RainString sFile) throw(...)
+void IniFile::save(const RainString &sFile) throw(...)
 {
   IFile* pFile = 0;
   try

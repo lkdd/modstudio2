@@ -35,6 +35,9 @@ public:
   void init(IFile* pSgaFile, bool bTakePointerOwnership = true) throw(...);
   bool initNoThrow(IFile* pSgaFile, bool bTakePointerOwnership = true) throw();
 
+  unsigned short int getFileCount() const throw() {return m_oFileHeader.iFileCount;}
+  unsigned short int getDirectoryCount() const throw() {return m_oFileHeader.iDirectoryCount;}
+
   virtual void getCaps(file_store_caps_t& oCaps) const throw();
 
   virtual IFile* openFile         (const RainString& sPath, eFileOpenMode eMode) throw(...);
@@ -91,7 +94,7 @@ protected:
 
   struct _file_info_t
   {
-    RainString sName;
+    /*RainString sName; */ unsigned long iName;
     unsigned long iDataOffset;
 		unsigned long iDataLengthCompressed;
 		unsigned long iDataLength;
@@ -110,11 +113,34 @@ protected:
   bool _resolvePath(const RainString& sPath, _directory_info_t** ppDirectory, _file_info_t **ppFile, bool bThrow) throw(...);
 
   template <class T>
+  inline const RainString& _getName(const T& o) {return o.sName;}
+
+  inline const char* _getName(const _file_info_t& o) {return m_sStringBlob + o.iName;}
+
+  template <class T>
   T* _resolveArray(T* pArray, unsigned short iStartIndex, unsigned short iEndIndex, const RainString& sPart, const RainString& sPath, bool bThrow) throw(...)
   {
+    // Assume array is sorted, and try
+    {
+      unsigned long iStart = iStartIndex;
+      unsigned long iEnd = iEndIndex;
+      while(iStart < iEnd)
+      {
+        unsigned long iTry = (iStart + iEnd) >> 1;
+        int iResult = sPart.compareCaseless(_getName(pArray[iTry]));
+        if(iResult < 0)
+          iEnd = iTry;
+        else if(iResult > 0)
+          iStart = iTry + 1;
+        else
+          return pArray + iTry;
+      }
+    }
+
+    // Retry without the assumption of sorting
     for(unsigned short i = iStartIndex; i < iEndIndex; ++i)
     {
-      if(pArray[i].sName.compareCaseless(sPart) == 0)
+      if(sPart.compareCaseless(_getName(pArray[i])) == 0)
         return pArray + i;
     }
     if(bThrow)

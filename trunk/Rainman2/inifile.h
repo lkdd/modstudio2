@@ -210,10 +210,10 @@ public:
   /*!
     
   */
-  void load(RainString sFile) throw(...);
+  void load(const RainString &sFile) throw(...);
 
   void save(IFile* pFile) throw(...);
-  void save(RainString sFile) throw(...);
+  void save(const RainString &sFile) throw(...);
 
   iterator begin() throw();
   iterator begin(RainString sSectionName) throw();
