@@ -240,6 +240,7 @@ public:
 
   IDirectory* open       ()                    const throw(...);
   IFile*      open       (eFileOpenMode eMode) const throw(...);
+  void        pump       (IFile *pSink)        const throw(...);
   IDirectory* openNoThrow()                    const throw();
   IFile*      openNoThrow(eFileOpenMode eMode) const throw();
 
@@ -277,6 +278,7 @@ public:
   virtual IFileStore* getStore() throw() = 0;
 
   virtual IFile* openFile(size_t iIndex, eFileOpenMode eMode) throw(...);
+  virtual void   pumpFile(size_t iIndex, IFile *pSink) throw(...);
   virtual IFile* openFileNoThrow(size_t iIndex, eFileOpenMode eMode) throw();
   virtual IDirectory* openDirectory(size_t iIndex) throw(...);
   virtual IDirectory* openDirectoryNoThrow(size_t iIndex) throw();
@@ -392,6 +394,9 @@ public:
   	  case of an error, a null pointer
   */
   virtual IFile* openFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw() = 0;
+
+  //! Open a file and copy its contents to another file
+  virtual void pumpFile(const RainString& sPath, IFile* pSink) throw(...);
 
   virtual bool doesFileExist(const RainString& sPath) throw() = 0;
   

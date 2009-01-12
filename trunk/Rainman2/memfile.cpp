@@ -65,7 +65,8 @@ void MemoryWriteFile::write(const void* pSource, size_t iItemSize, size_t iItemC
   size_t iBytes = iItemSize * iItemCount;
   if(m_pPointer + iBytes >= m_pBufferEnd)
   {
-    char *pNewBuffer = CHECK_ALLOCATION(new (std::nothrow) char[m_iSize <<= 1]);
+    m_iSize = m_iSize * 2 + iBytes;
+    char *pNewBuffer = CHECK_ALLOCATION(new (std::nothrow) char[m_iSize]);
     m_pBufferEnd = pNewBuffer + m_iSize;
     m_pEnd = m_pEnd - m_pBuffer + pNewBuffer;
     std::copy(m_pBuffer, m_pPointer, pNewBuffer);

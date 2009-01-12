@@ -38,14 +38,19 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma warning(push)
 #pragma warning(disable: 4996)
 
-template <class T> struct RAINMAN2_API RainStrFunctions {};
+template <class T> struct RAINMAN2_API RainStrFunctions
+{
+  enum {VALID = -1};
+};
 template <> struct RAINMAN2_API RainStrFunctions<char>
 {
+  enum {VALID = 1};
   static size_t len(const char* sZeroTerminated);
   static bool isWhitespace(const char cCharacter);
 };
 template <> struct RAINMAN2_API RainStrFunctions<wchar_t>
 {
+  enum {VALID = 1};
   static size_t len(const wchar_t* sZeroTerminated);
   static bool isWhitespace(const wchar_t cCharacter);
 };
@@ -90,6 +95,7 @@ public:
   template <class T>
   RainString(const T* sZeroTermString) throw(...)
   {
+    struct template_contraints { int char_type_expected[RainStrFunctions<T>::VALID]; };
     _initFromChars(sZeroTermString, sZeroTermString ? RainStrFunctions<T>::len(sZeroTermString) : 0);
   }
 
@@ -493,6 +499,7 @@ RAINMAN2_API RainString operator+(const RainString& sA, const RainString& sB);
 
 //! Global operator to add (concatenate) a RainString with a unicode character array
 RAINMAN2_API RainString operator+(const RainString& sA, const wchar_t* sB);
+RAINMAN2_API RainString operator+(const wchar_t* sA, const RainString& sB);
 
 //! Efficient specialisation of std::swap for RainStrings
 template <> RAINMAN2_API void std::swap<RainString>(RainString& a, RainString& b);

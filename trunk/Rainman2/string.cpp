@@ -223,6 +223,11 @@ RAINMAN2_API RainString operator+(const RainString& sA, const wchar_t* sB)
   return sA + RainString(sB);
 }
 
+RAINMAN2_API RainString operator+(const wchar_t* sA, const RainString& sB)
+{
+  return RainString(sA) + sB;
+}
+
 RainString::operator wxString() const
 {
   return wxString(begin(), length());
