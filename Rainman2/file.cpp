@@ -198,6 +198,11 @@ IFile* auto_directory_item::open(eFileOpenMode eMode) const throw(...)
   return m_pDirectory->openFile(m_iIndex, eMode);
 }
 
+void auto_directory_item::pump(IFile *pSink) const throw(...)
+{
+  return m_pDirectory->pumpFile(m_iIndex, pSink);
+}
+
 IDirectory* auto_directory_item::openNoThrow() const throw()
 {
   return m_pDirectory->openDirectoryNoThrow(m_iIndex);
@@ -277,6 +282,15 @@ IFile* IDirectory::openFile(size_t iIndex, eFileOpenMode eMode) throw(...)
   return getStore()->openFile(getPath() + oDetails.sName, eMode);
 }
 
+void IDirectory::pumpFile(size_t iIndex, IFile *pSink) throw(...)
+{
+  directory_item_t oDetails;
+  oDetails.oFields = false;
+  oDetails.oFields.name = true;
+  getItemDetails(iIndex, oDetails);
+  getStore()->pumpFile(getPath() + oDetails.sName, pSink);
+}
+
 IFile* IDirectory::openFileNoThrow(size_t iIndex, eFileOpenMode eMode) throw()
 {
   directory_item_t oDetails;
@@ -329,6 +343,28 @@ file_store_caps_t& file_store_caps_t::operator= (bool bValue) throw()
 {
   bCanReadFiles = bCanWriteFiles = bCanDeleteFiles = bCanOpenDirectories = bValue;
   return *this;
+}
+
+void IFileStore::pumpFile(const RainString& sPath, IFile* pSink) throw(...)
+{
+  IFile *pFile = 0;
+  try
+  {
+    pFile = openFile(sPath, FM_Read);
+
+    static const size_t BUFFER_SIZE = 8192;
+    unsigned char aBuffer[BUFFER_SIZE];
+    while(true)
+    {
+      size_t iNumBytes = pFile->readArrayNoThrow(aBuffer, BUFFER_SIZE);
+      if(iNumBytes == 0)
+        break;
+      pSink->writeArray(aBuffer, iNumBytes);
+    }
+
+    delete pFile;
+  }
+  CATCH_THROW_SIMPLE_(delete pFile, L"Cannot pump file \'%s\'", sPath.getCharacters());
 }
 
 FileSystemStore::FileSystemStore() throw()

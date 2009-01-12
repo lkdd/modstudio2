@@ -25,6 +25,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "archive.h"
 #include "exception.h"
 #include "hash.h"
+#include "zlib.h"
+#include "memfile.h"
 #include <memory.h>
 #include <string.h>
 #include <windows.h>
@@ -238,20 +240,167 @@ void SgaArchive::getCaps(file_store_caps_t& oCaps) const throw()
 
 IFile* SgaArchive::openFile(const RainString& sPath, eFileOpenMode eMode) throw(...)
 {
-  //! todo
-  THROW_SIMPLE(L"TODO");
+  if(eMode != FM_Read)
+    THROW_SIMPLE_(L"Files cannot be written to SGA archives (attempt to write \'%s\')", sPath.getCharacters());
+  _directory_info_t* pDirInfo = 0;
+  _file_info_t* pFileInfo = 0;
+  _resolvePath(sPath, &pDirInfo, &pFileInfo, true);
+  if(pFileInfo == 0)
+    THROW_SIMPLE_(L"Cannot open file \'%s\' as it is a directory", sPath.getCharacters());
+  IFile* pFile = CHECK_ALLOCATION(new (std::nothrow) MemoryWriteFile(pFileInfo->iDataLength));
+  try
+  {
+    _pumpFile(pFileInfo, pFile);
+  }
+  CATCH_THROW_SIMPLE_(delete pFile, L"Error opening \'%s\' for reading", sPath.getCharacters());
+  return pFile;
+}
+
+void SgaArchive::_pumpFile(_file_info_t* pInfo, IFile* pSink) throw(...)
+{
+  m_pRawFile->seek(m_oFileHeader.iDataOffset + pInfo->iDataOffset, SR_Start);
+
+  if(pInfo->iDataLength == pInfo->iDataLengthCompressed)
+  {
+    static const size_t BUFFER_SIZE = 8192;
+    unsigned char aBuffer[BUFFER_SIZE];
+    for(size_t iRemaining = static_cast<size_t>(pInfo->iDataLength); iRemaining != 0;)
+    {
+      size_t iNumBytes = m_pRawFile->readArrayNoThrow(aBuffer, min(BUFFER_SIZE, iRemaining));
+      pSink->writeArray(aBuffer, iNumBytes);
+      iRemaining -= iNumBytes;
+    }
+  }
+  else
+  {
+    static const size_t BUFFER_SIZE = 4096;
+    static const wchar_t* Z_ERR[] = {
+      L"zLib error from C errno",
+      L"zLib stream error",
+      L"zLib data error",
+      L"zLib memory error",
+      L"zLib buffer error",
+      L"zLib version error"
+    };
+    unsigned char aBufferComp[BUFFER_SIZE];
+    unsigned char aBufferInft[BUFFER_SIZE];
+
+    size_t iRemaining = static_cast<size_t>(pInfo->iDataLengthCompressed);
+    size_t iNumBytes;
+    z_stream stream;
+    int err;
+
+    iNumBytes = m_pRawFile->readArrayNoThrow(aBufferComp, min(BUFFER_SIZE, iRemaining));
+    iRemaining -= iNumBytes;
+
+    stream.next_in = (Bytef*)aBufferComp;
+    stream.avail_in = (uInt)iNumBytes;
+    stream.next_out = (Bytef*)aBufferInft;
+    stream.avail_out = (uInt)BUFFER_SIZE;
+    stream.zalloc = (alloc_func)0;
+    stream.zfree = (free_func)0;
+
+    err = inflateInit(&stream);
+    if(err != Z_OK)
+      THROW_SIMPLE_(L"Cannot initialise zLib stream; %s", Z_ERR[-err-1]);
+
+    try
+    {
+      while(true)
+      {
+        err = inflate(&stream, Z_SYNC_FLUSH);
+        if(err == Z_STREAM_END)
+          break;
+        else
+        {
+          switch(err)
+          {
+          case Z_NEED_DICT:
+            THROW_SIMPLE(L"Cannot decompress file; zLib requesting dictionary");
+            break;
+
+          case Z_OK:
+            if(stream.avail_in == 0)
+            {
+              iNumBytes = m_pRawFile->readArrayNoThrow(aBufferComp, min(BUFFER_SIZE, iRemaining));
+              iRemaining -= iNumBytes;
+              stream.next_in = (Bytef*)aBufferComp;
+              stream.avail_in = (uInt)iNumBytes;
+            }
+            if(stream.next_out != aBufferInft)
+            {
+              pSink->writeArray(aBufferInft, stream.next_out - aBufferInft);
+              stream.next_out = (Bytef*)aBufferInft;
+              stream.avail_out = (uInt)BUFFER_SIZE;
+            }
+            break;
+
+          default:
+            THROW_SIMPLE_(L"Cannot decompress file; %s", Z_ERR[-err-1]);
+            break;
+          }
+        }
+      }
+      if(stream.next_out != aBufferInft)
+        pSink->writeArray(aBufferInft, stream.next_out - aBufferInft);
+    }
+    catch(RainException*)
+    {
+      inflateEnd(&stream);
+      throw;
+    }
+
+    err = inflateEnd(&stream);
+    if(err != Z_OK)
+      THROW_SIMPLE_(L"Cannot cleanly close zLib stream; %s", Z_ERR[-err-1]);
+  }
+}
+
+void SgaArchive::pumpFile(const RainString& sPath, IFile* pSink) throw(...)
+{
+  _directory_info_t* pDirInfo = 0;
+  _file_info_t* pFileInfo = 0;
+  try
+  {
+    _resolvePath(sPath, &pDirInfo, &pFileInfo, true);
+    if(pFileInfo == 0)
+      THROW_SIMPLE(L"Cannot pump a directory");
+
+    _pumpFile(pFileInfo, pSink);
+  }
+  CATCH_THROW_SIMPLE_({}, L"Cannot pump file \'%s\'", sPath.getCharacters());
 }
 
 IFile* SgaArchive::openFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw()
 {
-  //! todo
-  return 0;
+  if(eMode != FM_Read)
+    return 0;
+  _directory_info_t* pDirInfo = 0;
+  _file_info_t* pFileInfo = 0;
+  if(!_resolvePath(sPath, &pDirInfo, &pFileInfo, false))
+    return 0;
+  IFile* pFile = new (std::nothrow) MemoryWriteFile(pFileInfo->iDataLength);
+  if(!pFile)
+    return 0;
+  try
+  {
+    _pumpFile(pFileInfo, pFile);
+  }
+  catch(RainException *pE)
+  {
+    delete pE;
+    delete pFile;
+    return 0;
+  }
+  return pFile;
 }
 
 bool SgaArchive::doesFileExist(const RainString& sPath) throw()
 {
-  //! todo
-  return false;
+  _directory_info_t* pDirInfo = 0;
+  _file_info_t* pFileInfo = 0;
+  _resolvePath(sPath, &pDirInfo, &pFileInfo, false);
+  return pFileInfo != 0;
 }
 
 void SgaArchive::deleteFile(const RainString& sPath) throw(...)
@@ -333,6 +482,40 @@ public:
       if(oDetails.oFields.time)
         oDetails.iTimestamp = pInfo->iModificationTime;
     }
+  }
+
+  virtual void pumpFile(size_t iIndex, IFile* pSink) throw(...)
+  {
+    CHECK_RANGE_LTMAX(m_iCountSubDir, iIndex, m_iCountSubDir + m_iCountFiles);
+    iIndex -= m_iCountSubDir;
+    iIndex += m_pDirectory->iFirstFile;
+    m_pArchive->_loadFilesUpTo((unsigned short)iIndex);
+    m_pArchive->_pumpFile(m_pArchive->m_pFiles + iIndex, pSink);
+  }
+
+  virtual IDirectory* openDirectory(size_t iIndex) throw(...)
+  {
+    CHECK_RANGE_LTMAX((size_t)0, iIndex, m_iCountSubDir);
+    iIndex += m_pDirectory->iFirstDirectory;
+    m_pArchive->_loadDirectoriesUpTo((unsigned short)iIndex);
+    return CHECK_ALLOCATION(new (std::nothrow) ArchiveDirectoryAdapter(m_pArchive, m_pArchive->m_pDirectories + iIndex));
+  }
+
+  virtual IDirectory* openDirectoryNoThrow(size_t iIndex) throw()
+  {
+    if(iIndex >= m_iCountSubDir)
+      return 0;
+    iIndex += m_pDirectory->iFirstDirectory;
+    try
+    {
+      m_pArchive->_loadDirectoriesUpTo((unsigned short)iIndex);
+    }
+    catch(RainException *pE)
+    {
+      delete pE;
+      return 0;
+    }
+    return new (std::nothrow) ArchiveDirectoryAdapter(m_pArchive, m_pArchive->m_pDirectories + iIndex);
   }
 
 protected:

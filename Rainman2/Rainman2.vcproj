@@ -125,7 +125,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="&quot;E:\CPP\lua-5.1.4\src&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\propgrid\include&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include\msvc&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1;_SCL_SECURE_NO_WARNINGS;ZLIB_DLL"
+				PreprocessorDefinitions="WIN32;NDEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1;_SCL_SECURE_NO_WARNINGS;ZLIB_DLL;_BIND_TO_CURRENT_VCLIBS_VERSION=1"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"

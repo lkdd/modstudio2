@@ -41,6 +41,7 @@ public:
   virtual void getCaps(file_store_caps_t& oCaps) const throw();
 
   virtual IFile* openFile         (const RainString& sPath, eFileOpenMode eMode) throw(...);
+  virtual void   pumpFile         (const RainString& sPath, IFile* pSink) throw(...);
   virtual IFile* openFileNoThrow  (const RainString& sPath, eFileOpenMode eMode) throw();
   virtual bool   doesFileExist    (const RainString& sPath) throw();
   virtual void   deleteFile       (const RainString& sPath) throw(...);
@@ -110,6 +111,7 @@ protected:
   void _loadFilesUpTo_v2(unsigned short int iFirstToLoad, unsigned short int iEnsureLoaded) throw(...);
   void _loadFilesUpTo_v4(unsigned short int iFirstToLoad, unsigned short int iEnsureLoaded) throw(...);
   void _loadChildren(_directory_info_t* pInfo, bool bJustDirectories) throw(...);
+  void _pumpFile(_file_info_t* pInfo, IFile* pSink) throw(...);
   bool _resolvePath(const RainString& sPath, _directory_info_t** ppDirectory, _file_info_t **ppFile, bool bThrow) throw(...);
 
   template <class T>
