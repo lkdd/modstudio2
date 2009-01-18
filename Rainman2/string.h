@@ -350,6 +350,7 @@ public:
   int compareCaseless(const RainString& sCompareTo) const throw();
 
   int compareCaseless(const char* sCompareTo) const throw();
+  int compareCaseless(const char* sCompareTo, size_t iLength) const throw();
 
   // Typedefs required to act as an STL container
   typedef RainChar value_type;
@@ -493,6 +494,8 @@ protected:
   */
   rain_string_buffer_t* m_pBuffer;
 };
+
+extern RAINMAN2_API const RainString RainEmptyString;
 
 //! Global operator to add (concatenate) two RainStrings
 RAINMAN2_API RainString operator+(const RainString& sA, const RainString& sB);

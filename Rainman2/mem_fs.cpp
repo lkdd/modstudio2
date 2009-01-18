@@ -95,7 +95,7 @@ public:
 
   virtual void getItemDetails(size_t iIndex, directory_item_t& oDetails) throw(...)
   {
-    CHECK_RANGE_LTMAX(static_cast<size_t>(0), iIndex, getItemCount());
+    CHECK_RANGE_LTMAX(0, iIndex, getItemCount());
     if(iIndex < m_pDirectory->m_vSubdirectories.size())
     {
       MemoryFileStore::directory_t *pDirectory = m_pDirectory->m_vSubdirectories[iIndex];
@@ -369,7 +369,7 @@ size_t MemoryFileStore::getEntryPointCount() throw()
 
 const RainString& MemoryFileStore::getEntryPointName(size_t iIndex) throw(...)
 {
-  CHECK_RANGE_LTMAX(static_cast<size_t>(0), iIndex, m_vEntryPoints.size());
+  CHECK_RANGE_LTMAX(0, iIndex, m_vEntryPoints.size());
   return m_vEntryPoints[iIndex]->m_sName;
 }
 

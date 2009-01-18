@@ -43,6 +43,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 // rainman2.h is this file
 // resource.h is for internal use only
 #include "../rgd_dict.h"
+#include "../spk_archive.h"
 #include "../string.h"
 #include "../va_copy.h"
 #include "../win32pe.h"

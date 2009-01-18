@@ -40,6 +40,8 @@ extern "C" {
 #pragma warning(disable: 4996)
 #define const_begin const_cast<const RainString*>(this)->begin
 
+RAINMAN2_API const RainString RainEmptyString("", 0);
+
 //! The buffer used by RainString
 /*!
   A buffer holds all the data required for a RainString:
@@ -148,7 +150,8 @@ struct rain_string_buffer_t
 
 RainString::RainString() throw(...)
 {
-  CHECK_ALLOCATION(m_pBuffer = new NOTHROW rain_string_buffer_t(1));
+  m_pBuffer = RainEmptyString.m_pBuffer;
+  ++m_pBuffer->iReferenceCount;
 }
 
 RainString::RainString(wxString s) throw(...)
@@ -235,7 +238,7 @@ RainString::operator wxString() const
 
 void RainString::clear() throw(...)
 {
-  *this = "";
+  *this = RainEmptyString;
 }
 
 void RainString::resize(size_type iNewLength) throw(...)
@@ -643,14 +646,14 @@ RainString& RainString::operator+= (RainChar cCharacter) throw(...)
 
 RainChar& RainString::operator[] (size_t iCharacterIndex) throw(...)
 {
-  CHECK_RANGE(static_cast<size_t>(0), iCharacterIndex, length());
+  CHECK_RANGE(0, iCharacterIndex, length());
   _ensureExclusiveBufferAccess();
   return m_pBuffer->getBuffer()[iCharacterIndex];
 }
 
 RainChar RainString::operator[] (size_t iCharacterIndex) const throw(...)
 {
-  CHECK_RANGE(static_cast<size_t>(0), iCharacterIndex, length());
+  CHECK_RANGE(0, iCharacterIndex, length());
   return m_pBuffer->getBuffer()[iCharacterIndex];
 }
 
@@ -728,13 +731,32 @@ int RainString::compareCaseless(const char* sCompareTo) const throw()
     return 1;
 }
 
+int RainString::compareCaseless(const char* sCompareTo, size_t iStrLength) const throw()
+{
+  size_t iLength = length();
+  const wchar_t* pChars = getCharacters();
+  size_t i;
+  for(i = 0; i < iLength && i < iStrLength; ++i)
+  {
+    int iStatus = tolower(pChars[i]) - tolower(sCompareTo[i]);
+    if(iStatus != 0)
+      return iStatus;
+  }
+  if(i == iLength && i == iStrLength)
+    return 0;
+  else if(i == iLength)
+    return -1;
+  else
+    return 1;
+}
+
 RainString RainString::mid(size_t iStart, size_t iLength) const throw(...)
 {
   if(iStart == 0 && iLength == length())
     return *this;
   if(iLength > 0)
   {
-    CHECK_RANGE(static_cast<size_t>(0), iStart + iLength, length());
+    CHECK_RANGE(0, iStart + iLength, length());
     return RainString(getCharacters() + iStart, iLength);
   }
   else

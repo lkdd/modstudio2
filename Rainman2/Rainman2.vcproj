@@ -209,6 +209,10 @@
 					RelativePath=".\memfile.cpp"
 					>
 				</File>
+				<File
+					RelativePath=".\spk_archive.cpp"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="Attributes"
@@ -349,6 +353,10 @@
 				</File>
 				<File
 					RelativePath=".\memfile.h"
+					>
+				</File>
+				<File
+					RelativePath=".\spk_archive.h"
 					>
 				</File>
 			</Filter>

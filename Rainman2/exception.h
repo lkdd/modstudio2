@@ -78,21 +78,39 @@ public:
     throw new RainException(sFile_, iLine, sMessage);
   }
 
+  /*
+    checkRange<T> and checkRangeLtMax<T> check that minimum <= value <= maximum or minimum <= value < maximum.
+    Hence they all take three arguments of type T; minimum, value and maximum. For automatic template deduction
+    to work, these three values need to have the same type, which seems simple until minimum or maximum are
+    integer literals (i.e. checkRange(..., 0, someValue, 10, ...)). In this case, any such literals would have
+    to be explicity type-casted to the required type, which is ugly. Automatic template deduction can however
+    be tweaked into getting the type T from just one parameter, which is done by making the min and max parameters
+    dependant types upon T, rather than type T itself (even though the resolved dependant type is T itself, the
+    compiler doesn't know this until the type of T is already finalised).
+
+    someClass<T>::someMember is called a dependant type of T, as the meaning of someMember is dependant upon the
+    type T. Furthermore, the compiler doesn't know that someMember will be a typedef, hence the typename keyword.
+  */
+#define T_NO_AUTO  typename __DummyNoParamAutoDetect<T>::T
+  template <class T> struct __DummyNoParamAutoDetect { typedef T T; };
+
   template <class T>
-  static void checkRange(const RainChar* sFile, unsigned long iLine, T value, T min, T max, const RainChar* sCheck) throw(...)
+  static void checkRange(const RainChar* sFile, unsigned long iLine, T value, T_NO_AUTO min, T_NO_AUTO max, const RainChar* sCheck) throw(...)
   {
     if(value < min || value > max)
       throw new RainException(sFile, iLine, RainString(L"Value not within range: ") + RainString(sCheck));
   }
 
-  static void checkAssert(const RainChar* sFile, unsigned long iLine, bool bAssertion, const RainChar* sCheck) throw(...);
-
   template <class T>
-  static void checkRangeLtMax(const RainChar* sFile, unsigned long iLine, T value, T min, T max, const RainChar* sCheck) throw(...)
+  static void checkRangeLtMax(const RainChar* sFile, unsigned long iLine, T value, T_NO_AUTO min, T_NO_AUTO max, const RainChar* sCheck) throw(...)
   {
     if(value < min || value >= max)
       throw new RainException(sFile, iLine, RainString(L"Value not within range: ") + RainString(sCheck));
   }
+
+#undef T_NO_AUTO
+
+  static void checkAssert(const RainChar* sFile, unsigned long iLine, bool bAssertion, const RainChar* sCheck) throw(...);
 
 protected:
   RainString m_sFile, m_sMessage;

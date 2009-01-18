@@ -421,7 +421,7 @@ size_t FileSystemStore::getEntryPointCount() throw()
 const RainString& FileSystemStore::getEntryPointName(size_t iEntryPointIndex) throw(...)
 {
   _ensureGotEntryPoints();
-  CHECK_RANGE_LTMAX(static_cast<size_t>(0), iEntryPointIndex, m_vEntryPoints.size());
+  CHECK_RANGE_LTMAX(0, iEntryPointIndex, m_vEntryPoints.size());
   return m_vEntryPoints[iEntryPointIndex];
 }
 
@@ -465,12 +465,12 @@ void FileSystemStore::_ensureGotEntryPoints() throw()
   if(!m_bKnowEntryPoints)
   {
     m_bKnowEntryPoints = true;
-    unsigned long iDrives = _getdrives(), iMask = 1;
-    for(char c = 'A'; c < 'Z'; ++c, iMask <<= 1)
+    unsigned long iDrives = _getdrives();
+    for(char c = 'A'; iDrives; ++c, iDrives >>= 1)
     {
-      if(iDrives & iMask)
+      if(iDrives & 1)
       {
-        RainString sPath(L"C:\\");
+        RainString sPath(L"C:");
         sPath[0] = c;
         m_vEntryPoints.push_back(sPath);
       }
@@ -630,7 +630,7 @@ public:
   virtual size_t getItemCount() throw() {return m_iItemCount;}
   virtual void getItemDetails(size_t iIndex, directory_item_t& oDetails) throw(...)
   {
-    CHECK_RANGE_LTMAX((size_t)0, iIndex, m_iItemCount);
+    CHECK_RANGE_LTMAX(0, iIndex, m_iItemCount);
     WIN32_FIND_DATAW* pData = m_vItems[iIndex];
     if(oDetails.oFields.dir)
       oDetails.bIsDirectory = pData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? true : false;
@@ -647,8 +647,8 @@ public:
       oTM.tm_min = oSysTime.wMinute;
       oTM.tm_hour = oSysTime.wHour;
       oTM.tm_mday = oSysTime.wDay;
-      oTM.tm_mon = oSysTime.wMonth;
-      oTM.tm_year = oSysTime.wYear;
+      oTM.tm_mon = oSysTime.wMonth - 1;
+      oTM.tm_year = oSysTime.wYear - 1900;
       oDetails.iTimestamp = mktime(&oTM);
     }
   }
