@@ -590,7 +590,7 @@ size_t Win32PEFile::getSectionCount() const throw()
 
 const Win32PEFile::Section& Win32PEFile::getSection(size_t iIndex) const throw(...)
 {
-  CHECK_RANGE_LTMAX(static_cast<size_t>(0), iIndex, getSectionCount());
+  CHECK_RANGE_LTMAX(0, iIndex, getSectionCount());
   return getSectionArray()[iIndex];
 }
 
@@ -606,7 +606,7 @@ size_t Win32PEFile::getImportedLibraryCount() const throw()
 
 const RainString& Win32PEFile::getImportedLibrary(size_t iIndex) const throw(...)
 {
-  CHECK_RANGE_LTMAX(static_cast<size_t>(0), iIndex, getImportedLibraryCount());
+  CHECK_RANGE_LTMAX(0, iIndex, getImportedLibraryCount());
   return getImportedLibraryArray()[iIndex];
 }
 

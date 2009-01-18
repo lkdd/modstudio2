@@ -405,7 +405,7 @@ size_t FileStoreComposition::getEntryPointCount() throw()
 
 const RainString& FileStoreComposition::getEntryPointName(size_t iIndex) throw(...)
 {
-  CHECK_RANGE_LTMAX(static_cast<size_t>(0), iIndex, getEntryPointCount());
+  CHECK_RANGE_LTMAX(0, iIndex, getEntryPointCount());
   return m_vEntryPoints[iIndex];
 }
 
@@ -431,7 +431,7 @@ public:
 
   virtual void getItemDetails(size_t iIndex, directory_item_t& oDetails) throw(...)
   {
-    CHECK_RANGE_LTMAX(static_cast<size_t>(0), iIndex, static_cast<size_t>(1));
+    CHECK_RANGE_LTMAX(0, iIndex, static_cast<size_t>(1));
     if(oDetails.oFields.dir)
       oDetails.bIsDirectory = true;
     if(oDetails.oFields.name)
@@ -532,7 +532,7 @@ public:
 
   void getItemDetails(size_t iIndex, directory_item_t& oDetails) throw(...)
   {
-    CHECK_RANGE_LTMAX(static_cast<size_t>(0), iIndex, getItemCount());
+    CHECK_RANGE_LTMAX(0, iIndex, getItemCount());
 
     auto_directory_item& oItem = m_vItems[iIndex];
     if(oDetails.oFields.name)

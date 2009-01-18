@@ -314,7 +314,7 @@ unsigned long LuaAttribTableAdapter::getChildCount() throw()
 
 IAttributeValue* LuaAttribTableAdapter::getChild(unsigned long iIndex) throw(...)
 {
-  CHECK_RANGE_LTMAX((unsigned long)0, iIndex, getChildCount());
+  CHECK_RANGE_LTMAX(0, iIndex, getChildCount());
   unsigned long iKey = m_vValues[iIndex];
   for(LuaAttrib::_table_t* pTable = m_pTable; pTable; pTable = const_cast<LuaAttrib::_table_t*>(pTable->pInheritFrom))
   {
@@ -347,7 +347,7 @@ void LuaAttribTableAdapter::addChild(unsigned long iName) throw(...)
 
 void LuaAttribTableAdapter::deleteChild(unsigned long iIndex, bool bRevertIsSufficient) throw(...)
 {
-  CHECK_RANGE_LTMAX((unsigned long)0, iIndex, getChildCount());
+  CHECK_RANGE_LTMAX(0, iIndex, getChildCount());
   unsigned long iKey = m_vValues[iIndex];
   bool bInTopLevel, bInFurtherLevels = false;
   bInTopLevel = m_pTable->mapContents.count(iKey) == 1;

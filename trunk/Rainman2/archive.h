@@ -26,26 +26,54 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "file.h"
 #include "exception.h"
 
-class RAINMAN2_API SgaArchive : public IFileStore
+class RAINMAN2_API IArchiveFileStore : public IFileStore
+{
+public:
+  virtual void init(IFile* pArchiveFile, bool bTakePointerOwnership = true) throw(...) = 0;
+  virtual bool initNoThrow(IFile* pArchiveFile, bool bTakePointerOwnership = true) throw();
+
+  virtual size_t getFileCount() const throw() = 0;
+  virtual size_t getDirectoryCount() const throw() = 0;
+
+  virtual void getCaps(file_store_caps_t& oCaps) const throw();
+
+  virtual void   deleteFile            (const RainString& sPath) throw(...);
+  virtual bool   deleteFileNoThrow     (const RainString& sPath) throw();
+  virtual void   createDirectory       (const RainString& sPath) throw(...);
+  virtual bool   createDirectoryNoThrow(const RainString& sPath) throw();
+  virtual void   deleteDirectory       (const RainString& sPath) throw(...);
+  virtual bool   deleteDirectoryNoThrow(const RainString& sPath) throw();
+};
+
+/*
+  All Relic games since Impossible Creatures have used SGA archives to store the game data.
+  The implementation of SgaArchive in Rainman2 allows for the reading of version 2.0, 4.0 and
+  4.1 SGA archives, which covers the following games:
+    * Warhammer 40,000: Dawn of War (uses 2.0)
+    * Dawn of War: Winter Assault, Dark Crusade and Soulstorm (use 2.0)
+    * Company of Heroes (uses 4.0)
+    * Company of Heroes: Opposing Fronts (uses 4.0)
+    * Company of Heroes Online (uses 4.1, also uses SPK archives)
+  It is currently assumed that Company of Heroes: Tales of Valor and Dawn of War 2 will both
+  use version 4.x archives.
+*/
+class RAINMAN2_API SgaArchive : public IArchiveFileStore
 {
 public:
   SgaArchive() throw();
   virtual ~SgaArchive() throw();
 
-  void init(IFile* pSgaFile, bool bTakePointerOwnership = true) throw(...);
-  bool initNoThrow(IFile* pSgaFile, bool bTakePointerOwnership = true) throw();
+  static bool doesFileResemble(IFile* pFile) throw();
 
-  unsigned short int getFileCount() const throw() {return m_oFileHeader.iFileCount;}
-  unsigned short int getDirectoryCount() const throw() {return m_oFileHeader.iDirectoryCount;}
+  virtual void init(IFile* pSgaFile, bool bTakePointerOwnership = true) throw(...);
 
-  virtual void getCaps(file_store_caps_t& oCaps) const throw();
+  virtual size_t getFileCount() const throw() {return m_oFileHeader.iFileCount;}
+  virtual size_t getDirectoryCount() const throw() {return m_oFileHeader.iDirectoryCount;}
 
   virtual IFile* openFile         (const RainString& sPath, eFileOpenMode eMode) throw(...);
   virtual void   pumpFile         (const RainString& sPath, IFile* pSink) throw(...);
   virtual IFile* openFileNoThrow  (const RainString& sPath, eFileOpenMode eMode) throw();
   virtual bool   doesFileExist    (const RainString& sPath) throw();
-  virtual void   deleteFile       (const RainString& sPath) throw(...);
-  virtual bool   deleteFileNoThrow(const RainString& sPath) throw();
 
   virtual size_t            getEntryPointCount() throw();
   virtual const RainString& getEntryPointName(size_t iIndex) throw(...);
@@ -53,17 +81,13 @@ public:
   virtual IDirectory* openDirectory         (const RainString& sPath) throw(...);
   virtual IDirectory* openDirectoryNoThrow  (const RainString& sPath) throw();
   virtual bool        doesDirectoryExist    (const RainString& sPath) throw();
-  virtual void        createDirectory       (const RainString& sPath) throw(...);
-  virtual bool        createDirectoryNoThrow(const RainString& sPath) throw();
-  virtual void        deleteDirectory       (const RainString& sPath) throw(...);
-  virtual bool        deleteDirectoryNoThrow(const RainString& sPath) throw();
 
 protected:
   friend class ArchiveDirectoryAdapter;
-  friend class ArchiveFileAdapter;
 
   struct _file_header_raw_t
   {
+    // Formally, these fields are the 'file' header:
     char sIdentifier[8];
     unsigned short iVersionMajor;
     unsigned short iVersionMinor;
@@ -73,12 +97,18 @@ protected:
     unsigned long iDataHeaderSize;
     unsigned long iDataOffset;
     unsigned long iPlatform;
+    // Formally, thse fields are the start of the 'data' header:
+    // All offsets are from the start of this data header
     unsigned long iEntryPointOffset;
     unsigned short int iEntryPointCount;
     unsigned long iDirectoryOffset;
     unsigned short int iDirectoryCount;
     unsigned long iFileOffset;
     unsigned short int iFileCount;
+    // The string block contains the name of every directory and file in the archive. Note that the string count is
+    // the number of strings (i.e. iDirectoryCount + iFileCount), *not* the length (in bytes) of the string block.
+    // In version 4.1 SGA files, the string block is encrypted to prevent casual viewing of file names. In this case,
+    // placed before the string block is the encryption algorithm ID and key required to decrypt the block.
     unsigned long iStringOffset;
     unsigned short int iStringCount;
   };
@@ -87,18 +117,31 @@ protected:
   {
     RainString sName;
     RainString sPath;
+    // The subdirectories of this directory are those in the range [first, last)
     unsigned short int iFirstDirectory;
     unsigned short int iLastDirectory;
+    // The files in this directory (excluding those in subdirectories) are in the range [first, last)
     unsigned short int iFirstFile;
     unsigned short int iLastFile;
   };
 
   struct _file_info_t
   {
-    /*RainString sName; */ unsigned long iName;
+    // Unlike directories, the name is stored as an index into the archive's string block rather than as a RainString.
+    // For archives with upward of 30,000 files, this would have meant 30000 RainStrings comprising of 30000 internal
+    // RainString buffers and 30000 individual raw character buffers. Thus this would have caused 60000 small allocations
+    // when the archive was loaded, and 60000 dealocations when unloaded.
+    /* RainString sName; */
+    unsigned long iName;
+    // The data for this file is located at position ArchiveHeader.iDataOffset + ThisFile.iDataOffset
     unsigned long iDataOffset;
+    // The file's data may be compressed with DEFLATE (zLib), in which case the length of the compressed data and the
+    // length of the uncompressed data will vary. In some cases, the file data may be uncompressed, in which case the
+    // length of the compressed data equals the length of the uncompressed data.
 		unsigned long iDataLengthCompressed;
 		unsigned long iDataLength;
+    // From version 4.0, files in SGA archives have individual unix timestamps on them (i.e. seconds elapsed since
+    // January 1st 1970). Version 2 archives do not, so all files report a modification time of Jan 1st 1970 ;)
 		unsigned long iModificationTime;
   };
 
@@ -112,6 +155,16 @@ protected:
   void _loadFilesUpTo_v4(unsigned short int iFirstToLoad, unsigned short int iEnsureLoaded) throw(...);
   void _loadChildren(_directory_info_t* pInfo, bool bJustDirectories) throw(...);
   void _pumpFile(_file_info_t* pInfo, IFile* pSink) throw(...);
+
+  /*!
+    Attempts to locate a directory/file within the archive from a given file name / path.
+    \param sPath The file path to try and locate
+    \param ppDirectory If the file path refers to a directory in the archive, then a pointer to the information on it
+                       will be written here, otherwise NULL will be written. ppDirectory itself must not be NULL.
+    \param ppFile If the file path refers to a file in the archive, then a pointer to the information on it will be
+                  written here, otherwise NULL will be written. ppFile itself must not be NULL.
+    \param bThrow If true, then an exception is thrown if nothing is found. If false, then false is returned instead.
+  */
   bool _resolvePath(const RainString& sPath, _directory_info_t** ppDirectory, _file_info_t **ppFile, bool bThrow) throw(...);
 
   template <class T>
@@ -153,12 +206,12 @@ protected:
   _file_header_raw_t m_oFileHeader;
   _directory_info_t *m_pEntryPoints;
   _directory_info_t *m_pDirectories;
-  _file_info_t *m_pFiles;
-  char* m_sStringBlob;
-  IFile* m_pRawFile;
-  seek_offset_t m_iDataHeaderOffset;
+  _file_info_t      *m_pFiles;
+  char              *m_sStringBlob;
+  IFile             *m_pRawFile;
+  seek_offset_t      m_iDataHeaderOffset;
   unsigned short int m_iNumEntryPointsLoaded;
   unsigned short int m_iNumDirectoriesLoaded;
   unsigned short int m_iNumFilesLoaded;
-  bool m_bDeleteRawFileLater;
+  bool               m_bDeleteRawFileLater;
 };

@@ -65,6 +65,60 @@ struct _file_raw_t
   };
 };
 
+bool IArchiveFileStore::initNoThrow(IFile* pFile, bool bTakePointerOwnership) throw()
+{
+  try
+  {
+    init(pFile, bTakePointerOwnership);
+    return true;
+  }
+  catch(RainException* e)
+  {
+    delete e;
+  }
+  catch(...)
+  {
+  }
+  return false;
+}
+
+void IArchiveFileStore::getCaps(file_store_caps_t& oCaps) const throw()
+{
+  oCaps = false;
+  oCaps.bCanReadFiles = true;
+  oCaps.bCanOpenDirectories = true;
+}
+
+void IArchiveFileStore::deleteFile(const RainString& sPath) throw(...)
+{
+  THROW_SIMPLE_(L"Files cannot be deleted from archive files (attempt to delete \'%s\')", sPath.getCharacters());
+}
+
+bool IArchiveFileStore::deleteFileNoThrow(const RainString& sPath) throw()
+{
+  return false;
+}
+
+void IArchiveFileStore::createDirectory(const RainString& sPath) throw(...)
+{
+  THROW_SIMPLE_(L"Directories cannot be created in archive files (attempt to create \'%s\')", sPath.getCharacters());
+}
+
+bool IArchiveFileStore::createDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return false;
+}
+
+void IArchiveFileStore::deleteDirectory(const RainString& sPath) throw(...)
+{
+  THROW_SIMPLE_(L"Directories cannot be deleted from archive files (attempt to delete \'%s\')", sPath.getCharacters());
+}
+
+bool IArchiveFileStore::deleteDirectoryNoThrow(const RainString& sPath) throw()
+{
+  return false;
+}
+
 SgaArchive::SgaArchive()
 {
   _zeroSelf();
@@ -100,6 +154,14 @@ void SgaArchive::_cleanSelf() throw()
   delete[] m_sStringBlob;
 
   _zeroSelf();
+}
+
+bool SgaArchive::doesFileResemble(IFile* pFile) throw()
+{
+  char sSig[8];
+  size_t iCount = pFile->readArrayNoThrow(sSig, 8);
+  pFile->seekNoThrow(-static_cast<seek_offset_t>(iCount), SR_Current);
+  return (iCount == 8) && memcmp(sSig, "_ARCHIVE", 8) == 0;
 }
 
 void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
@@ -214,30 +276,6 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
   }
 }
 
-bool SgaArchive::initNoThrow(IFile* pSgaFile, bool bTakePointerOwnership) throw()
-{
-  try
-  {
-    init(pSgaFile, bTakePointerOwnership);
-    return true;
-  }
-  catch(RainException* e)
-  {
-    delete e;
-  }
-  catch(...)
-  {
-  }
-  return false;
-}
-
-void SgaArchive::getCaps(file_store_caps_t& oCaps) const throw()
-{
-  oCaps = false;
-  oCaps.bCanReadFiles = true;
-  oCaps.bCanOpenDirectories = true;
-}
-
 IFile* SgaArchive::openFile(const RainString& sPath, eFileOpenMode eMode) throw(...)
 {
   if(eMode != FM_Read)
@@ -251,6 +289,7 @@ IFile* SgaArchive::openFile(const RainString& sPath, eFileOpenMode eMode) throw(
   try
   {
     _pumpFile(pFileInfo, pFile);
+    pFile->seek(0, SR_Start);
   }
   CATCH_THROW_SIMPLE_(delete pFile, L"Error opening \'%s\' for reading", sPath.getCharacters());
   return pFile;
@@ -339,6 +378,8 @@ void SgaArchive::_pumpFile(_file_info_t* pInfo, IFile* pSink) throw(...)
             THROW_SIMPLE_(L"Cannot decompress file; %s", Z_ERR[-err-1]);
             break;
           }
+          if(stream.total_out == pInfo->iDataLength)
+            break;
         }
       }
       if(stream.next_out != aBufferInft)
@@ -385,6 +426,7 @@ IFile* SgaArchive::openFileNoThrow(const RainString& sPath, eFileOpenMode eMode)
   try
   {
     _pumpFile(pFileInfo, pFile);
+    pFile->seek(0, SR_Start);
   }
   catch(RainException *pE)
   {
@@ -403,16 +445,6 @@ bool SgaArchive::doesFileExist(const RainString& sPath) throw()
   return pFileInfo != 0;
 }
 
-void SgaArchive::deleteFile(const RainString& sPath) throw(...)
-{
-  THROW_SIMPLE_(L"Files cannot be deleted from SGA archives (attempt to delete \'%s\')", sPath.getCharacters());
-}
-
-bool SgaArchive::deleteFileNoThrow(const RainString& sPath) throw()
-{
-  return false;
-}
-
 size_t SgaArchive::getEntryPointCount() throw()
 {
   return m_oFileHeader.iEntryPointCount;
@@ -420,7 +452,7 @@ size_t SgaArchive::getEntryPointCount() throw()
 
 const RainString& SgaArchive::getEntryPointName(size_t iIndex) throw(...)
 {
-  CHECK_RANGE((size_t)0, iIndex, getEntryPointCount() - 1);
+  CHECK_RANGE(0, iIndex, getEntryPointCount() - 1);
   _loadEntryPointsUpTo((unsigned short)iIndex);
   return m_pEntryPoints[iIndex].sName;
 }
@@ -452,7 +484,7 @@ public:
 
   virtual void getItemDetails(size_t iItemIndex, directory_item_t& oDetails) throw(...)
   {
-    CHECK_RANGE_LTMAX((size_t)0, iItemIndex, m_iCountSubDir + m_iCountFiles);
+    CHECK_RANGE_LTMAX(0, iItemIndex, m_iCountSubDir + m_iCountFiles);
     if(iItemIndex < m_iCountSubDir)
     {
       iItemIndex += m_pDirectory->iFirstDirectory;
@@ -495,7 +527,7 @@ public:
 
   virtual IDirectory* openDirectory(size_t iIndex) throw(...)
   {
-    CHECK_RANGE_LTMAX((size_t)0, iIndex, m_iCountSubDir);
+    CHECK_RANGE_LTMAX(0, iIndex, m_iCountSubDir);
     iIndex += m_pDirectory->iFirstDirectory;
     m_pArchive->_loadDirectoriesUpTo((unsigned short)iIndex);
     return CHECK_ALLOCATION(new (std::nothrow) ArchiveDirectoryAdapter(m_pArchive, m_pArchive->m_pDirectories + iIndex));
@@ -519,7 +551,7 @@ public:
   }
 
 protected:
-  SgaArchive* m_pArchive;
+  SgaArchive *m_pArchive;
   SgaArchive::_directory_info_t *m_pDirectory;
   size_t m_iCountSubDir;
   size_t m_iCountFiles;
@@ -546,28 +578,10 @@ IDirectory* SgaArchive::openDirectoryNoThrow(const RainString& sPath) throw()
 
 bool SgaArchive::doesDirectoryExist(const RainString& sPath) throw()
 {
-  //! todo
-  return false;
-}
-
-void SgaArchive::createDirectory(const RainString& sPath) throw(...)
-{
-  THROW_SIMPLE_(L"Directories cannot be created in SGA archives (attempt to create \'%s\')", sPath.getCharacters());
-}
-
-bool SgaArchive::createDirectoryNoThrow(const RainString& sPath) throw()
-{
-  return false;
-}
-
-void SgaArchive::deleteDirectory(const RainString& sPath) throw(...)
-{
-  THROW_SIMPLE_(L"Directories cannot be deleted from SGA archives (attempt to delete \'%s\')", sPath.getCharacters());
-}
-
-bool SgaArchive::deleteDirectoryNoThrow(const RainString& sPath) throw()
-{
-  return false;
+  _directory_info_t* pDirInfo = 0;
+  _file_info_t* pFileInfo = 0;
+  _resolvePath(sPath, &pDirInfo, &pFileInfo, false);
+  return pDirInfo != 0;
 }
 
 void SgaArchive::_loadEntryPointsUpTo(unsigned short int iEnsureLoaded) throw(...)
@@ -580,7 +594,7 @@ void SgaArchive::_loadEntryPointsUpTo(unsigned short int iEnsureLoaded) throw(..
   }
   if(iFirstToLoad <= iEnsureLoaded)
   {
-    CHECK_RANGE_LTMAX((unsigned short)0, iEnsureLoaded, m_oFileHeader.iEntryPointCount);
+    CHECK_RANGE_LTMAX(0, iEnsureLoaded, m_oFileHeader.iEntryPointCount);
     try
     {
       m_pRawFile->seek(m_iDataHeaderOffset + m_oFileHeader.iEntryPointOffset + iFirstToLoad * 140, SR_Start);
@@ -643,7 +657,7 @@ void SgaArchive::_loadDirectoriesUpTo(unsigned short int iEnsureLoaded) throw(..
   }
   if(iFirstToLoad <= iEnsureLoaded)
   {
-    CHECK_RANGE_LTMAX((unsigned short)0, iEnsureLoaded, m_oFileHeader.iDirectoryCount);
+    CHECK_RANGE_LTMAX(0, iEnsureLoaded, m_oFileHeader.iDirectoryCount);
     try
     {
       m_pRawFile->seek(m_iDataHeaderOffset + m_oFileHeader.iDirectoryOffset + iFirstToLoad * 12, SR_Start);
@@ -737,7 +751,7 @@ void SgaArchive::_loadFilesUpTo(unsigned short int iEnsureLoaded) throw(...)
   }
   if(iFirstToLoad <= iEnsureLoaded)
   {
-    CHECK_RANGE_LTMAX((unsigned short)0, iEnsureLoaded, m_oFileHeader.iFileCount);
+    CHECK_RANGE_LTMAX(0, iEnsureLoaded, m_oFileHeader.iFileCount);
     if(m_oFileHeader.iVersionMajor == 2)
       _loadFilesUpTo_v2(iFirstToLoad, iEnsureLoaded);
     else if(m_oFileHeader.iVersionMajor == 4)
