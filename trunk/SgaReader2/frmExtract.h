@@ -32,7 +32,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 class frmExtract : public wxDialog
 {
 public:
-  frmExtract(wxWindow *pParent, SgaArchive *pArchive, RainString sDefaultExtractFolder, 
+  frmExtract(wxWindow *pParent, IFileStore *pArchive, RainString sDefaultExtractFolder, 
              const RainString& sPathToExtract, wxStatusBar *pResultNotification = 0);
   ~frmExtract();
 
@@ -48,7 +48,7 @@ public:
 protected:
   bool _ensureDirectoryExists(RainString sFolder);
 
-  SgaArchive  *m_pArchive;
+  IFileStore  *m_pArchive;
   wxStatusBar *m_pPositiveResultNoficiationBar;
   wxComboBox  *m_pDestinationPath;
   wxSizer     *m_pButtonsSizer;

@@ -37,13 +37,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <memory>
 
 BEGIN_EVENT_TABLE(frmFileStoreViewer, wxFrame)
-  EVT_LIST_ITEM_ACTIVATED(LST_DETAILS, frmFileStoreViewer::onFileDoAction )
-  EVT_MENU               (wxID_OPEN  , frmFileStoreViewer::onOpen         )
-  EVT_MENU               (wxID_EXIT  , frmFileStoreViewer::onExit         )
-  EVT_MENU               (wxID_ABOUT , frmFileStoreViewer::onAbout        )
-  EVT_SIZE               (             frmFileStoreViewer::onResize       )
-  EVT_TREE_ITEM_EXPANDING(TREE_FILES , frmFileStoreViewer::onTreeExpanding)
-  EVT_TREE_SEL_CHANGED   (TREE_FILES , frmFileStoreViewer::onTreeSelection)
+  EVT_LIST_ITEM_ACTIVATED(LST_DETAILS, frmFileStoreViewer::onFileDoAction  )
+  EVT_MENU               (wxID_OPEN  , frmFileStoreViewer::onOpen          )
+  EVT_MENU               (MNU_OPEN_FS, frmFileStoreViewer::onOpenFileSystem)
+  EVT_MENU               (wxID_EXIT  , frmFileStoreViewer::onExit          )
+  EVT_MENU               (wxID_ABOUT , frmFileStoreViewer::onAbout         )
+  EVT_SIZE               (             frmFileStoreViewer::onResize        )
+  EVT_TREE_ITEM_EXPANDING(TREE_FILES , frmFileStoreViewer::onTreeExpanding )
+  EVT_TREE_SEL_CHANGED   (TREE_FILES , frmFileStoreViewer::onTreeSelection )
 END_EVENT_TABLE()
 
 class SGATreeData : public wxTreeItemData
@@ -93,6 +94,7 @@ frmFileStoreViewer::frmFileStoreViewer(const wxString& sTitle)
     wxMenu *pFileMenu = new wxMenu;
     pMenuBar->Append(pFileMenu, L"&File");
     pFileMenu->Append(wxID_OPEN, wxEmptyString, L"Opens an SGA archive for browsing");
+    pFileMenu->Append(MNU_OPEN_FS, L"Open filesystem", L"Opens your computer\'s file-system for browsing");
     pFileMenu->AppendSeparator();
     IniFile::Section& oRecent = TheConfig[L"Recent"];
     if(!oRecent.empty())
@@ -165,16 +167,19 @@ frmFileStoreViewer::frmFileStoreViewer(const wxString& sTitle)
     SetSize(rcScreen.x + (rcScreen.width - iWidth) / 2, rcScreen.y + (rcScreen.height - iHeight) / 2, iWidth, iHeight);
   }
   Layout();
+
+  // Automated testing
+  /*
+  wxCommandEvent e;
+  onOpenFileSystem(e);
+  onExit(e);
+  */
 }
 
 frmFileStoreViewer::~frmFileStoreViewer()
 {
+  _closeCurrentArchive();
   delete m_pIcons;
-  if(m_pArchive)
-  {
-    GetStatusBar()->SetStatusText(L"Closing " + m_sCurrentShortName + L"...");
-    delete m_pArchive;
-  }
   TheConfig["Dates"]["Format"] = m_sDateFormat;
 }
 
@@ -187,12 +192,49 @@ void frmFileStoreViewer::onOpen(wxCommandEvent &e)
 {
   wxFileDialog oFileSelector(this, wxFileSelectorPromptStr, wxEmptyString, wxEmptyString, wxEmptyString, wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_CHANGE_DIR);
   oFileSelector.SetMessage(L"Choose an archive");
-  oFileSelector.SetWildcard(L"SGA archives (*.sga)|*.sga|All files (*.*)|*.*");
+  oFileSelector.SetWildcard(
+    L"Relic game archives (*.sga;*.spk)|*.sga;*.spk|"
+    L"SGA archives (*.sga)|*.sga|"
+    L"SPK archives (*.spk)|*.spk|"
+    L"All files (*.*)|*.*"
+  );
   oFileSelector.SetFilterIndex(0);
   if(oFileSelector.ShowModal() == wxID_CANCEL)
     return;
   else
-    _doLoadArchive(oFileSelector.GetPath());
+  {
+    switch(oFileSelector.GetFilterIndex())
+    {
+    case 0: // SGA / SPK
+      if(oFileSelector.GetFilename().AfterLast('.').CompareTo(L"sga", wxString::ignoreCase) == 0)
+      {
+      case 1: // SGA
+        _doLoadArchive(oFileSelector.GetPath(), AT_SGA);
+        break;
+      }
+      else
+      {
+      case 2: // SPK
+        _doLoadArchive(oFileSelector.GetPath(), AT_SPK);
+        break;
+      }
+    case 3: // *
+      {
+        IFile *pFile = RainOpenFileNoThrow(oFileSelector.GetPath(), FM_Read);
+        if(SpkArchive::doesFileResemble(pFile))
+        {
+          delete pFile; pFile = 0;
+          _doLoadArchive(oFileSelector.GetPath(), AT_SPK);
+        }
+        else
+        {
+          delete pFile; pFile = 0;
+          _doLoadArchive(oFileSelector.GetPath(), AT_SGA);
+        }
+        break;
+      }
+    }
+  }
 }
 
 void frmFileStoreViewer::onFileDoAction(wxListEvent &e)
@@ -245,58 +287,111 @@ void frmFileStoreViewer::onFileDoAction(wxListEvent &e)
   }
 }
 
-void frmFileStoreViewer::_doLoadArchive(wxString sPath)
+void frmFileStoreViewer::_closeCurrentArchive()
 {
   if(m_pArchive)
   {
     GetStatusBar()->SetStatusText(L"Closing " + m_sCurrentShortName + L"...");
     delete m_pArchive;
     m_pArchive = 0;
-    m_oCurrentFolderId = wxTreeItemId();
-    m_pFilesTree->DeleteAllItems();
-    m_pDetailsView->DeleteAllItems();
   }
 
-  {
-    wxFileName oFileName(sPath);
-    m_sCurrentShortName = oFileName.GetFullName();
-    m_sCurrentArchivePath = RainString(oFileName.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR));
-  }
+  m_oCurrentFolderId = wxTreeItemId();
+  m_pFilesTree->DeleteAllItems();
+  m_pDetailsView->DeleteAllItems();
+  m_sCurrentShortName.clear();
+  m_sCurrentArchivePath.clear();
+  SetTitle(m_sBaseTitle);
+}
+
+void frmFileStoreViewer::onOpenFileSystem(wxCommandEvent &e)
+{
+  _closeCurrentArchive();
+
+  m_sCurrentShortName = L"file system";
+  m_sCurrentArchivePath.clear();
 
   GetStatusBar()->SetStatusText(L"Loading " + m_sCurrentShortName + L"...");
 
-  SetTitle(m_sBaseTitle);
-  RainString sArchiveFile = sPath;
   try
   {
-    CHECK_ALLOCATION(m_pArchive = new (std::nothrow) SgaArchive);
-    m_pArchive->init(RainOpenFile(sArchiveFile, FM_Read));
+    CHECK_ALLOCATION(m_pArchive = new (std::nothrow) FileSystemStore);
   }
-  CATCH_MESSAGE_BOX_1(L"Unable to open archive file \'%s\'", sArchiveFile.getCharacters(), {
-    delete m_pArchive;
-    m_pArchive = 0;
+  CATCH_MESSAGE_BOX_1(L"Unable to open %s", m_sCurrentShortName.c_str(), {
+    _closeCurrentArchive();
     return;
   });
 
+  _onLoadedArchive();
+
+  GetStatusBar()->SetStatusText(L"Loaded " + m_sCurrentShortName + wxString::Format(L", %lu drives found", static_cast<unsigned long>(m_pArchive->getEntryPointCount())));
+}
+
+void frmFileStoreViewer::_doLoadArchive(wxString sPath, eArchiveTypes eArchiveType)
+{
+  _closeCurrentArchive();
+
+  wxFileName oFileName(sPath);
+  m_sCurrentShortName = oFileName.GetFullName();
+  m_sCurrentArchivePath = RainString(oFileName.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR));
+
+  GetStatusBar()->SetStatusText(L"Loading " + m_sCurrentShortName + L"...");
+
+  IArchiveFileStore *pArchive = 0;
+  try
+  {
+    switch(eArchiveType)
+    {
+    case AT_SGA:
+      CHECK_ALLOCATION(pArchive = new (std::nothrow) SgaArchive);
+      break;
+
+    case AT_SPK:
+      CHECK_ALLOCATION(pArchive = new (std::nothrow) SpkArchive);
+      break;
+
+    default:
+      THROW_SIMPLE(L"Unknown archive type");
+    };
+    m_pArchive = pArchive;
+    pArchive->init(RainOpenFile(sPath, FM_Read));
+  }
+  CATCH_MESSAGE_BOX_1(L"Unable to open archive file \'%s\'", sPath.c_str(), {
+    _closeCurrentArchive();
+    return;
+  });
+
+  _onLoadedArchive();
+  
+  GetStatusBar()->SetStatusText(L"Loaded " + m_sCurrentShortName + wxString::Format(L", %u files in %u directories", pArchive->getFileCount(), pArchive->getDirectoryCount()));
+}
+
+void frmFileStoreViewer::_onLoadedArchive()
+{
   SetTitle(m_sBaseTitle + L" - " + m_sCurrentShortName);
 
   wxTreeItemId oRoot = m_pFilesTree->AddRoot(wxEmptyString);
   size_t iEntryCount = m_pArchive->getEntryPointCount();
+
   if(iEntryCount == 0)
   {
     ::wxMessageBox(L"Archive was loaded successfully, but it contains no files.", L"Open archive", wxICON_INFORMATION, this);
     return;
   }
-  wxTreeItemId oEntry;
+
+  wxTreeItemId oEntry, oFirstEntry;
   for(size_t i = 0; i < iEntryCount; ++i)
   {
     const RainString& sName = m_pArchive->getEntryPointName(i);
     oEntry = m_pFilesTree->AppendItem(oRoot, sName, 1, -1, new SGATreeData(sName));
+    if(i == 0)
+      oFirstEntry = oEntry;
     m_pFilesTree->SetItemHasChildren(oEntry);
-    m_pFilesTree->Expand(oEntry);
+    if(iEntryCount == 1)
+      m_pFilesTree->Expand(oEntry);
   }
-  m_pFilesTree->SelectItem(oEntry);
-  GetStatusBar()->SetStatusText(L"Loaded " + m_sCurrentShortName + wxString::Format(L", %u files in %u directories", m_pArchive->getFileCount(), m_pArchive->getDirectoryCount()));
+  m_pFilesTree->SetFocus();
+  m_pFilesTree->SelectItem(oFirstEntry);
 }
 
 void frmFileStoreViewer::onAbout(wxCommandEvent &e)
@@ -315,10 +410,11 @@ void frmFileStoreViewer::onResize(wxSizeEvent &e)
 
 void frmFileStoreViewer::onTreeSelection(wxTreeEvent &e)
 {
+  m_pDetailsView->Freeze();
   m_pDetailsView->DeleteAllItems();
 
   wxTreeItemId oItem = e.GetItem();
-  if(!oItem.IsOk())
+  if(!oItem.IsOk() || m_pArchive == NULL)
     return;
 
   m_oCurrentFolderId = oItem;
@@ -397,6 +493,7 @@ void frmFileStoreViewer::onTreeSelection(wxTreeEvent &e)
               bGotType = true;
             }
           }
+          delete pType;
         }
 
         const wchar_t* aSuffixs[] = {L"Bytes", L"KB", L"MB", L"GB", NULL};
@@ -414,6 +511,7 @@ void frmFileStoreViewer::onTreeSelection(wxTreeEvent &e)
     }
   }
   CATCH_MESSAGE_BOX(L"Unable to list directory contents", {});
+  m_pDetailsView->Thaw();
 }
 
 void frmFileStoreViewer::onTreeExpanding(wxTreeEvent &e)
