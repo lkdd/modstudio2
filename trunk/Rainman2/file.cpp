@@ -30,15 +30,18 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <windows.h>
 #include <time.h>
 #include <errno.h>
+#ifdef RAINMAN2_USE_LUA
 extern "C" {
 #include <lua.h>
 }
+#endif
 #pragma warning(disable: 4996)
 
 FileSystemStore g_oRainFSO;
 
 IFile::~IFile() {}
 
+#ifdef RAINMAN2_USE_LUA
 struct IFile_load_load_t
 {
   IFile_load_load_t(IFile* pFile) : pFile(pFile) {}
@@ -65,6 +68,7 @@ int IFile::lua_load(lua_State *L, const char* sChunkName) throw()
   IFile_load_load_t oLoadStruct(this);
   return ::lua_load(L, IFile_load_load_t::reader, reinterpret_cast<void*>(&oLoadStruct), sChunkName);
 }
+#endif
 
 IDirectory::~IDirectory() {}
 IFileStore::~IFileStore() {}

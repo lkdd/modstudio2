@@ -23,6 +23,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "luattrib.h"
+#ifdef RAINMAN2_USE_LUA
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
@@ -1300,3 +1301,5 @@ size_t LuaAttrib::_table_t::writeToBinary(IFile* pFile) const
 
   return iDataLength + iHeaderLength;
 }
+
+#endif

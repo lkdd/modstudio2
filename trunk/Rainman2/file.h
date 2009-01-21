@@ -125,6 +125,7 @@ public:
   void readArray(T* pDestination, size_t iCount) throw(...)
   { read(pDestination, sizeof(T), iCount); }
 
+#ifdef RAINMAN2_USE_LUA
   //! Load the file as a Lua chunk
   /*!
     Reads the remainder of the file (i.e. the whole file if the file pointer is at the
@@ -134,6 +135,7 @@ public:
     \return Same values as ::lua_load(), with an error or chunk placed on the Lua stack
   */
   int lua_load(lua_State *L, const char* sChunkName) throw();
+#endif
 
   //! Read an array of items from the file, without throwing an exception
   /*!

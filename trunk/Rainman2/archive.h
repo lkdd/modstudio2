@@ -54,8 +54,8 @@ public:
     * Company of Heroes (uses 4.0)
     * Company of Heroes: Opposing Fronts (uses 4.0)
     * Company of Heroes Online (uses 4.1, also uses SPK archives)
-  It is currently assumed that Company of Heroes: Tales of Valor and Dawn of War 2 will both
-  use version 4.x archives.
+    * Warhammer 40,000: Dawn of War II (uses 5.0)
+  It is currently assumed that Company of Heroes: Tales of Valor will use version 4.x archives.
 */
 class RAINMAN2_API SgaArchive : public IArchiveFileStore
 {

@@ -31,10 +31,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <functional>
 #include <limits>
 #include <wchar.h>
+#ifdef RAINMAN2_USE_LUA
 extern "C" {
 #include <lua.h>
 }
+#endif
+#ifdef RAINMAN2_USE_WX
 #include <wx/string.h>
+#endif
 #include "new_trace.h"
 
 #pragma warning(disable: 4996)
@@ -154,10 +158,12 @@ RainString::RainString() throw(...)
   ++m_pBuffer->iReferenceCount;
 }
 
+#ifdef RAINMAN2_USE_WX
 RainString::RainString(wxString s) throw(...)
 {
   _initFromChars(s.c_str(), s.size());
 }
+#endif
 
 RainString::RainString(const RainString& oCopyFrom) throw()
 {
@@ -165,12 +171,14 @@ RainString::RainString(const RainString& oCopyFrom) throw()
   ++m_pBuffer->iReferenceCount;
 }
 
+#ifdef RAINMAN2_USE_LUA
 RainString::RainString(lua_State *L, int idx) throw(...)
 {
   size_t len;
   const char* str = lua_tolstring(L, idx, &len);
   _initFromChars(str, len);
 }
+#endif
 
 RainString& RainString::operator= (const RainChar* sZeroTermString) throw(...)
 {
@@ -231,10 +239,12 @@ RAINMAN2_API RainString operator+(const wchar_t* sA, const RainString& sB)
   return RainString(sA) + sB;
 }
 
+#ifdef RAINMAN2_USE_WX
 RainString::operator wxString() const
 {
   return wxString(begin(), length());
 }
+#endif
 
 void RainString::clear() throw(...)
 {

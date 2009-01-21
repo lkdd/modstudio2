@@ -173,6 +173,85 @@
 				CommandLine="copy $(OutDir)\$(ProjectName).dll $(SolutionDir)release\$(ProjectName).dll"
 			/>
 		</Configuration>
+		<Configuration
+			Name="ReleaseMinimal|Win32"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="2"
+			CharacterSet="1"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				AdditionalIncludeDirectories="&quot;E:\CPP\lua-5.1.4\src&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\propgrid\include&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include\msvc&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\include&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;RAINMAN2_EXPORTS;WXUSINGDLL;wxUSE_UNICODE =1;_SCL_SECURE_NO_WARNINGS;ZLIB_DLL;_BIND_TO_CURRENT_VCLIBS_VERSION=1;RAINMAN2_NO_WX;RAINMAN2_NO_LUA;RAINMAN2_NO_CRYPTO_WIN32"
+				RuntimeLibrary="2"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				Detect64BitPortabilityProblems="false"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="wxbase28u.lib Lua5.1.lib"
+				OutputFile="$(OutDir)\$(ProjectName).dll"
+				AdditionalLibraryDirectories="&quot;E:\CPP\lua-5.1.4\release&quot;;&quot;E:\CPP\2K8\wxWidgets-2.8.8\lib\vc_dll&quot;"
+				OptimizeForWindows98="0"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+			/>
+		</Configuration>
 	</Configurations>
 	<References>
 	</References>
