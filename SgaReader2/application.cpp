@@ -32,6 +32,9 @@ IniFile SGAReader2App::Config;
 
 bool SGAReader2App::OnInit()
 {
+  // Watch for MSVC CRT memory allocation (tracing memory leaks)
+  //_CrtSetBreakAlloc(4874);
+
 	// If we can, force toolbar images to be 32-bit with transparency
   if(GetComCtl32Version() >= 600 && ::wxDisplayDepth() >= 32)
     wxSystemOptions::SetOption(wxT("msw.remap"), 2);

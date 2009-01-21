@@ -38,6 +38,7 @@ public:
   void onAbout         (wxCommandEvent &e);
   void onExit          (wxCommandEvent &e);
   void onOpen          (wxCommandEvent &e);
+  void onOpenFileSystem(wxCommandEvent &e);
   void onResize        (wxSizeEvent    &e);
   void onFileDoAction  (wxListEvent    &e);
   void onTreeExpanding (wxTreeEvent    &e);
@@ -47,12 +48,21 @@ public:
   {
     TREE_FILES = wxID_HIGHEST + 1,
     LST_DETAILS,
+    MNU_OPEN_FS,
+  };
+
+  enum eArchiveTypes
+  {
+    AT_SGA,
+    AT_SPK,
   };
 
 protected:
-  void _doLoadArchive(wxString sPath);
+  void _onLoadedArchive();
+  void _closeCurrentArchive();
+  void _doLoadArchive(wxString sPath, eArchiveTypes eArchiveType);
 
-  SgaArchive  *m_pArchive;
+  IFileStore  *m_pArchive;
   wxTreeCtrl  *m_pFilesTree;
   wxListCtrl  *m_pDetailsView;
   wxChoice    *m_pDirectoryDefaultActionList;

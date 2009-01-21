@@ -39,7 +39,7 @@ END_EVENT_TABLE()
 RainString frmExtract::s_sLastSaveDir;
 bool       frmExtract::s_bLastSaveDirHasDir;
 
-frmExtract::frmExtract(wxWindow *pParent, SgaArchive *pArchive, RainString sDefaultExtractFolder,
+frmExtract::frmExtract(wxWindow *pParent, IFileStore *pArchive, RainString sDefaultExtractFolder,
                        const RainString& sPathToExtract, wxStatusBar *pResultNotification)
   : m_pArchive(pArchive), m_pPositiveResultNoficiationBar(pResultNotification), m_sPathToExtract(sPathToExtract)
 {
