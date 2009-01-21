@@ -116,6 +116,7 @@ public:
   virtual ~MemoryWriteFile() throw();
 
   inline char* getBuffer() throw() {return m_pBuffer;}
+  inline size_t getLengthUsed() throw() {return m_pEnd - m_pBuffer;}
 
   virtual void write(const void* pSource, size_t iItemSize, size_t iItemCount) throw(...);
   virtual size_t writeNoThrow(const void* pSource, size_t iItemSize, size_t iItemCount) throw();

@@ -27,6 +27,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "attributes.h"
 #include "buffering_streams.h"
 #include <map>
+#ifdef RAINMAN2_USE_LUA
 
 class LuaAttribCache;
 struct lua_State;
@@ -278,3 +279,5 @@ public:
   // Re-enable the constant overflow warning
 #pragma warning (pop)
 };
+
+#endif

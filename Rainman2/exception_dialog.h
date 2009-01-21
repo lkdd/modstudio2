@@ -23,19 +23,9 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
-// For compilers that support precompilation, includes "wx/wx.h".
-#include <wx/wxprec.h>
-
-#ifdef __BORLANDC__
-    #pragma hdrstop
-#endif
-
-// for all others, include the necessary headers (this file is usually all you
-// need because it includes almost all "standard" wxWidgets headers)
-#ifndef WX_PRECOMP
-    #include "wx/wx.h"
-#endif
-// ----------------------------
+#include "exception.h"
+#ifdef RAINMAN2_USE_WX
+#include <wx/wx.h>
 #include <wx/dialog.h>
 #include <wx/button.h>
 #include <wx/listctrl.h>
@@ -78,3 +68,4 @@ private:
 #define CATCH_MESSAGE_BOX(message, cleanup) catch (RainException *pRainError) { EXCEPTION_MESSAGE_BOX(message, pRainError); cleanup; }
 #define CATCH_MESSAGE_BOX_1(message, a1, cleanup) catch (RainException *pRainError) { EXCEPTION_MESSAGE_BOX_1(message, a1, pRainError); cleanup; }
 #pragma warning(pop)
+#endif

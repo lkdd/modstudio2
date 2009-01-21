@@ -23,6 +23,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "exception_dialog.h"
+#ifdef RAINMAN2_USE_WX
 #include <wx/artprov.h>
 #include <wx/clipbrd.h>
 
@@ -189,3 +190,5 @@ void RainExceptionDialog::show(RainException* pE, bool bDeleteException)
   if(bDeleteException)
     delete pE;
 }
+
+#endif

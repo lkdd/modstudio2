@@ -65,11 +65,15 @@ typedef wchar_t RainChar;
 */
 struct rain_string_buffer_t;
 
+#ifdef RAINMAN2_USE_LUA
 //! Forward reference of a lua_State (saves having to include the entire lua header)
 struct lua_State;
+#endif
 
+#ifdef RAINMAN2_USE_WX
 //! Forward reference of a wxString (saves having to include all the wx headers)
 class wxString;
+#endif
 
 //! The class used by Rainman for string/text data
 /*!
@@ -83,8 +87,10 @@ public:
   //! Default constructor; yields empty string
   RainString() throw(...);
 
+#ifdef RAINMAN2_USE_WX
   //! Construct from a wxString
   RainString(wxString s) throw(...);
+#endif
 
   //! Construct from a zero-terminated array of characters
   /*!
@@ -99,6 +105,7 @@ public:
     _initFromChars(sZeroTermString, sZeroTermString ? RainStrFunctions<T>::len(sZeroTermString) : 0);
   }
 
+#ifdef RAINMAN2_USE_LUA
   //! Construct from a Lua string
   /*!
     \param L The Lua state to copy the string from
@@ -106,6 +113,7 @@ public:
       to copy. Defaults to stack top (-1).
   */
   RainString(lua_State *L, int idx = -1) throw(...);
+#endif
 
   //! Construct from an existing string
   RainString(const RainString&) throw();
@@ -144,8 +152,10 @@ public:
   //! Replace current string with a different one
   RainString& operator= (const RainString&) throw();
 
+#ifdef RAINMAN2_USE_WX
   //! Operator to seamlessly convert a RainString to a wxString
   operator wxString() const;
+#endif
 
   //! Default value returned by the indexOf() functions to indicate that the search string was not found
   static const size_t NOT_FOUND = static_cast<size_t>(-1);

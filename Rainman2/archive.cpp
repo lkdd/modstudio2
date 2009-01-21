@@ -29,7 +29,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "memfile.h"
 #include <memory.h>
 #include <string.h>
+#ifdef RAINMAN2_USE_CRYPTO_WIN32
 #include <windows.h>
+#else
+#define min std::min
+#endif
 
 struct _entry_point_raw_t
 {
@@ -178,16 +182,25 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
     pSgaFile->readOne(m_oFileHeader.iVersionMajor);
     pSgaFile->readOne(m_oFileHeader.iVersionMinor);
     if((m_oFileHeader.iVersionMajor == 2 && m_oFileHeader.iVersionMinor == 0) ||
-       (m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor <= 1) )
+       (m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor <= 1) ||
+       (m_oFileHeader.iVersionMajor == 5 && m_oFileHeader.iVersionMinor == 0) )
     {}
     else
-      throw new RainException(__WFILE__, __LINE__, 0, L"Only version 2.0, 4.0 or 4.1 SGA archives are supported, not version %u.%u - Please show this archive to corsix@corsix.org", m_oFileHeader.iVersionMajor, m_oFileHeader.iVersionMinor);
+      throw new RainException(__WFILE__, __LINE__, 0, L"Only version 2.0, 4.0, 4.1 or 5.0 SGA archives are supported, not version %u.%u - Please show this archive to corsix@corsix.org", m_oFileHeader.iVersionMajor, m_oFileHeader.iVersionMinor);
+#ifndef RAINMAN2_USE_CRYPTO_WIN32
+    if(m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor == 1)
+      throw new RainException(__WFILE__, __LINE__, 0, L"Rainman not compiled with support for version 4.1 SGA archives");
+#endif
     pSgaFile->readArray(m_oFileHeader.iContentsMD5, 4);
     pSgaFile->readArray(m_oFileHeader.sArchiveName, 64);
     pSgaFile->readArray(m_oFileHeader.iHeaderMD5, 4);
     pSgaFile->readOne(m_oFileHeader.iDataHeaderSize);
     pSgaFile->readOne(m_oFileHeader.iDataOffset);
-    if(m_oFileHeader.iVersionMajor == 4)
+    if(m_oFileHeader.iVersionMajor == 5)
+    {
+      pSgaFile->readOne(m_iDataHeaderOffset);
+    }
+    if(m_oFileHeader.iVersionMajor >= 4)
     {
       pSgaFile->readOne(m_oFileHeader.iPlatform);
       if(m_oFileHeader.iPlatform != 1)
@@ -198,7 +211,14 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
   }
   CATCH_THROW_SIMPLE(_cleanSelf(), L"Could not load valid file header")
 
-  m_iDataHeaderOffset = pSgaFile->tell();
+  if(m_oFileHeader.iVersionMajor == 5)
+  {
+    pSgaFile->seek(m_iDataHeaderOffset, SR_Start);
+  }
+  else
+  {
+    m_iDataHeaderOffset = pSgaFile->tell();
+  }
   try
   {
     MD5Hash oHeaderHash;
@@ -225,6 +245,7 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
   }
   CATCH_THROW_SIMPLE(_cleanSelf(), L"Cannot load data header overview");
 
+#ifdef RAINMAN2_USE_CRYPTO_WIN32
   if(m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor == 1)
   {
     // This code reverse-engineered from CoH:Online's Filesystem.dll
@@ -264,6 +285,7 @@ void SgaArchive::init(IFile* pSgaFile, bool bTakePointerOwnership) throw(...)
     delete[] pKeyData;
   }
   else
+#endif
   {
     try
     {
@@ -597,7 +619,13 @@ void SgaArchive::_loadEntryPointsUpTo(unsigned short int iEnsureLoaded) throw(..
     CHECK_RANGE_LTMAX(0, iEnsureLoaded, m_oFileHeader.iEntryPointCount);
     try
     {
-      m_pRawFile->seek(m_iDataHeaderOffset + m_oFileHeader.iEntryPointOffset + iFirstToLoad * 140, SR_Start);
+      unsigned long iEntryPointSize = 140;
+      if((m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor == 1)
+      || (m_oFileHeader.iVersionMajor == 5))
+      {
+        iEntryPointSize = 138;
+      }
+      m_pRawFile->seek(m_iDataHeaderOffset + m_oFileHeader.iEntryPointOffset + static_cast<unsigned long>(iFirstToLoad) * iEntryPointSize, SR_Start);
       for(unsigned short int iToLoad = iFirstToLoad; iToLoad <= iEnsureLoaded; m_iNumEntryPointsLoaded = iToLoad++)
       {
         _entry_point_raw_t oRaw;
@@ -607,7 +635,8 @@ void SgaArchive::_loadEntryPointsUpTo(unsigned short int iEnsureLoaded) throw(..
         m_pRawFile->readOne(oRaw.iLastDirectory);
         m_pRawFile->readOne(oRaw.iFirstFile);
         m_pRawFile->readOne(oRaw.iLastFile);
-        if(m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor == 1)
+        if((m_oFileHeader.iVersionMajor == 4 && m_oFileHeader.iVersionMinor == 1)
+        || (m_oFileHeader.iVersionMajor == 5) )
         {
           unsigned short iFolderOffset;
           m_pRawFile->readOne(iFolderOffset);
@@ -754,7 +783,7 @@ void SgaArchive::_loadFilesUpTo(unsigned short int iEnsureLoaded) throw(...)
     CHECK_RANGE_LTMAX(0, iEnsureLoaded, m_oFileHeader.iFileCount);
     if(m_oFileHeader.iVersionMajor == 2)
       _loadFilesUpTo_v2(iFirstToLoad, iEnsureLoaded);
-    else if(m_oFileHeader.iVersionMajor == 4)
+    else if(m_oFileHeader.iVersionMajor >= 4)
       _loadFilesUpTo_v4(iFirstToLoad, iEnsureLoaded);
     else
       THROW_SIMPLE(L"Unsupported SGA version for file info");

@@ -45,3 +45,15 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define RAINMAN2_API __declspec(dllimport)
 #endif
 #endif
+
+#ifndef RAINMAN2_NO_WX
+#define RAINMAN2_USE_WX
+#endif
+
+#ifndef RAINMAN2_NO_LUA
+#define RAINMAN2_USE_LUA
+#endif
+
+#ifndef RAINMAN2_NO_CRYPTO_WIN32
+#define RAINMAN2_USE_CRYPTO_WIN32
+#endif
