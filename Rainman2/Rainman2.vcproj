@@ -248,7 +248,6 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				Description=""
 				CommandLine=""
 			/>
 		</Configuration>
@@ -309,6 +308,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\rbf_attrib.cpp"
+					>
+				</File>
+				<File
 					RelativePath=".\rgd_dict.cpp"
 					>
 				</File>
@@ -338,6 +341,10 @@
 				</File>
 				<File
 					RelativePath=".\string.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\ucs.cpp"
 					>
 				</File>
 				<File
@@ -459,6 +466,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\rbf_attrib.h"
+					>
+				</File>
+				<File
 					RelativePath=".\rgd_dict.h"
 					>
 				</File>
@@ -504,6 +515,10 @@
 				</File>
 				<File
 					RelativePath=".\string.h"
+					>
+				</File>
+				<File
+					RelativePath=".\ucs.h"
 					>
 				</File>
 				<File

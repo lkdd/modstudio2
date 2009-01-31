@@ -23,33 +23,21 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 #pragma once
-#pragma warning (push)
-#include "../api.h"
-#include "../archive.h"
-#include "../attributes.h"
-#include "../binaryattrib.h"
-#include "../buffering_streams.h"
-#include "../exception.h"
-#include "../exception_dialog.h"
-#include "../file.h"
-#include "../filestore_adaptors.h"
-#include "../filestore_composition.h"
-#include "../hash.h"
-#include "../inifile.h"
-#include "../luattrib.h"
-#include "../mem_fs.h"
-#include "../memfile.h"
-// new_trace.h is for internal use only
-// rainman2.h is this file
-#ifdef RAINMAN2_USE_RBF
-#include "../rbf_attrib.h"
-#endif
-// resource.h is for internal use only
-#include "../rgd_dict.h"
-#include "../spk_archive.h"
-#include "../string.h"
-#include "../ucs.h"
-#include "../va_copy.h"
-#include "../win32pe.h"
-#include "../zlib.h"
-#pragma warning (pop)
+#include "file.h"
+#include "string.h"
+#include <unordered_map>
+
+class RAINMAN2_API UcsFile
+{
+public:
+  UcsFile();
+  ~UcsFile();
+
+  void load(IFile *pFile) throw(...);
+
+  const RainString* operator[](unsigned long iKey) const;
+
+protected:
+  typedef std::tr1::unordered_map<unsigned long, RainString> map_type;
+  map_type m_mapStrings;
+};

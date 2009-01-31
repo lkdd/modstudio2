@@ -173,6 +173,11 @@ public:
     return m_pValue->fValue;
   }
 
+  long            getValueInteger  () const throw(...)
+  {
+    THROW_SIMPLE(L"Value is not integer");
+  }
+
   virtual void setName(unsigned long iName          ) throw(...)
   {
     if(!m_pParent)

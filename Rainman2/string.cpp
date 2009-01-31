@@ -502,7 +502,7 @@ void RainString::_ensureExclusiveBufferAccess() throw(...)
   {
     rain_string_buffer_t* pNewBuffer;
     CHECK_ALLOCATION(pNewBuffer = new NOTHROW rain_string_buffer_t(m_pBuffer->iBufferLength));
-    iterator begin = const_begin();
+    const_iterator begin = const_begin();
     std::copy(begin, begin + m_pBuffer->iBufferLength, pNewBuffer->getBuffer());
     if(pNewBuffer->isUsingMiniBuffer())
       pNewBuffer->cLengthUsed = m_pBuffer->cLengthUsed;

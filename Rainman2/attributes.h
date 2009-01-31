@@ -35,6 +35,7 @@ enum eAttributeValueTypes
   VT_Boolean, //!< Boolean data (true/false)
   VT_Table,   //!< A table containing further values
   VT_Float,   //!< Single-precision floating point data
+  VT_Integer, //!< 32-bit signed integer
 
   //! Should never be found in attribute files, but provided as a convenience
   VT_Unknown,
@@ -90,11 +91,13 @@ public:
   inline bool isBoolean() const throw() {return getType() == VT_Boolean;}
   inline bool isTable  () const throw() {return getType() == VT_Table  ;}
   inline bool isFloat  () const throw() {return getType() == VT_Float  ;}
+  inline bool isInteger() const throw() {return getType() == VT_Integer;}
 
   virtual RainString       getValueString () const throw(...) = 0;
   virtual bool             getValueBoolean() const throw(...) = 0;
   virtual IAttributeTable* getValueTable  () const throw(...) = 0;
   virtual float            getValueFloat  () const throw(...) = 0;
+  virtual long             getValueInteger() const throw(...) = 0;
 
   virtual void setName(unsigned long iName          ) throw(...) = 0;
   virtual void setType(eAttributeValueTypes eNewType) throw(...) = 0;
