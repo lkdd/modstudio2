@@ -397,7 +397,21 @@ void SgaArchive::_pumpFile(_file_info_t* pInfo, IFile* pSink) throw(...)
             break;
 
           default:
-            THROW_SIMPLE_(L"Cannot decompress file; %s", Z_ERR[-err-1]);
+            if(stream.total_out == pInfo->iDataLength && stream.msg && strcmp(stream.msg, "incorrect data check") == 0
+              && m_oFileHeader.iVersionMajor == 5 && m_oFileHeader.iVersionMinor == 0 && m_oFileHeader.iDataOffset == 198
+              && pInfo == (m_pFiles + m_oFileHeader.iFileCount - 1))
+            {
+              // There is a bug in SGA archives produced by early versions of sga4to5.exe, in which the last two bytes of
+              // the last file's data are truncated. If this is the case, then the actual data is still intact, but the
+              // end of the zLib metadata is missing.
+              m_pRawFile->seek(192, SR_Start);
+              m_pRawFile->readArrayNoThrow(aBufferComp, 4);
+              if(memcmp(aBufferComp, "COR6", 4) == 0)
+              {
+                break;
+              }
+            }
+            THROW_SIMPLE_(L"Cannot decompress file; %s (%S)", Z_ERR[-err-1], stream.msg ? stream.msg : "?");
             break;
           }
           if(stream.total_out == pInfo->iDataLength)

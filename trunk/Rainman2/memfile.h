@@ -40,7 +40,7 @@ public:
   virtual void read(void* pDestination, size_t iItemSize, size_t iItemCount) throw(...)
   {
     size_t iBytes = iItemSize * iItemCount;
-    if(m_pPointer + iBytes >= m_pEnd)
+    if(m_pPointer + iBytes > m_pEnd)
     {
       THROW_SIMPLE_(L"Reading %lu items of size %lu would exceed the memory buffer (only %lu bytes remaining)",
         static_cast<unsigned long>(iItemCount), static_cast<unsigned long>(iItemSize), static_cast<unsigned long>(m_pEnd - m_pPointer));
@@ -52,7 +52,7 @@ public:
   virtual size_t readNoThrow(void* pDestination, size_t iItemSize, size_t iItemCount) throw()
   {
     size_t iBytes = iItemSize * iItemCount;
-    if(m_pPointer + iBytes >= m_pEnd)
+    if(m_pPointer + iBytes > m_pEnd)
     {
       iItemCount = (m_pEnd - m_pPointer) / iItemSize;
       iBytes = iItemSize * iItemCount;
