@@ -68,6 +68,7 @@ protected:
 frmFileStoreViewer::frmFileStoreViewer(const wxString& sTitle)
   : wxFrame(NULL, wxID_ANY, sTitle)
   , m_pArchive(0)
+  , m_pAttribPreviewWindow(0)
   , m_sBaseTitle(sTitle)
 {
   m_sDateFormat = TheConfig[L"Dates"][L"Format"].value();
@@ -137,6 +138,9 @@ frmFileStoreViewer::frmFileStoreViewer(const wxString& sTitle)
   wxString aActions[] = {
     L"Navigate",
     L"Extract",
+#ifdef RAINMAN2_USE_RBF
+    L"Preview",
+#endif
   };
 
   wxSizer *pRightSizer = new wxBoxSizer(wxVERTICAL);
@@ -146,7 +150,7 @@ frmFileStoreViewer::frmFileStoreViewer(const wxString& sTitle)
   m_pDirectoryDefaultActionList->SetSelection(0);
   pDefaultActionSizer->AddStretchSpacer(1);
   pDefaultActionSizer->Add(new wxStaticText(pRightPanel, wxID_ANY, L"Default file action:"), 0, wxALL | wxALIGN_CENTER_VERTICAL, 2);
-  pDefaultActionSizer->Add(m_pFileDefaultActionList = new wxChoice(pRightPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, 1, aActions + 1), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 2);
+  pDefaultActionSizer->Add(m_pFileDefaultActionList = new wxChoice(pRightPanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, sizeof(aActions) / sizeof(*aActions) - 1, aActions + 1), 0, wxALL | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 2);
   m_pFileDefaultActionList->SetSelection(0);
   pDefaultActionSizer->AddStretchSpacer(1);
   pRightSizer->Add(pDefaultActionSizer, 0, wxEXPAND);
@@ -169,11 +173,8 @@ frmFileStoreViewer::frmFileStoreViewer(const wxString& sTitle)
   Layout();
 
   // Automated testing
-  /*
-  wxCommandEvent e;
-  onOpenFileSystem(e);
-  onExit(e);
-  */
+  //_doLoadArchive(L"E:\\Valve\\Steam\\SteamApps\\common\\warhammer 40,000 dawn of war ii - beta\\GameAssets\\Archives\\gameattrib.sga", AT_SGA);
+  //m_pFileDefaultActionList->SetSelection(1);
 }
 
 frmFileStoreViewer::~frmFileStoreViewer()
@@ -276,15 +277,46 @@ void frmFileStoreViewer::onFileDoAction(wxListEvent &e)
         }
         oChild = m_pFilesTree->GetNextChild(m_oCurrentFolderId, oCookie);
       }
-      break;
     }
-    // fall-through
+    else
+    {
+      frmExtract oExtractor(this, m_pArchive, m_sCurrentArchivePath, pFolderData->getPath() + L"\\" + RainString(m_pDetailsView->GetItemText(iIndex)), GetStatusBar());
+      oExtractor.ShowModal();
+    }
+    break;
 
   case 2: // file
-    frmExtract oExtractor(this, m_pArchive, m_sCurrentArchivePath, pFolderData->getPath() + L"\\" + RainString(m_pDetailsView->GetItemText(iIndex)), GetStatusBar());
-    oExtractor.ShowModal();
+    if(m_pFileDefaultActionList->GetSelection() == 0)
+    {
+      frmExtract oExtractor(this, m_pArchive, m_sCurrentArchivePath, pFolderData->getPath() + L"\\" + RainString(m_pDetailsView->GetItemText(iIndex)), GetStatusBar());
+      oExtractor.ShowModal();
+    }
+#ifdef RAINMAN2_USE_RBF
+    else
+    {
+      if(m_pAttribPreviewWindow == 0)
+      {
+        m_pAttribPreviewWindow = new frmAttribPreview;
+        m_pAttribPreviewWindow->setFileStore(m_pArchive);
+        m_pAttribPreviewWindow->Connect(wxID_ANY, wxEVT_CLOSE_WINDOW, wxCloseEventHandler(frmFileStoreViewer::onClosePreviewWindow), 0, this);
+        m_pAttribPreviewWindow->Show();
+      }
+      try
+      {
+        m_pAttribPreviewWindow->loadFile(pFolderData->getPath() + L"\\" + RainString(m_pDetailsView->GetItemText(iIndex)));
+      }
+      CATCH_MESSAGE_BOX(L"Error loading file", {});
+      m_pAttribPreviewWindow->SetFocus();
+    }
+#endif
     break;
   }
+}
+
+void frmFileStoreViewer::onClosePreviewWindow(wxCloseEvent &e)
+{
+  m_pAttribPreviewWindow->Destroy();
+  m_pAttribPreviewWindow = 0;
 }
 
 void frmFileStoreViewer::_closeCurrentArchive()
@@ -362,6 +394,11 @@ void frmFileStoreViewer::_doLoadArchive(wxString sPath, eArchiveTypes eArchiveTy
   });
 
   _onLoadedArchive();
+
+  if(pArchive->getEntryPointCount() != 0 && pArchive->getFileCount() == 0)
+  {
+    ::wxMessageBox(L"Archive was loaded successfully, but it contains no files.", L"Open archive", wxICON_INFORMATION, this);
+  }
   
   GetStatusBar()->SetStatusText(L"Loaded " + m_sCurrentShortName + wxString::Format(L", %u files in %u directories", pArchive->getFileCount(), pArchive->getDirectoryCount()));
 }
@@ -410,12 +447,12 @@ void frmFileStoreViewer::onResize(wxSizeEvent &e)
 
 void frmFileStoreViewer::onTreeSelection(wxTreeEvent &e)
 {
-  m_pDetailsView->Freeze();
-  m_pDetailsView->DeleteAllItems();
-
   wxTreeItemId oItem = e.GetItem();
   if(!oItem.IsOk() || m_pArchive == NULL)
     return;
+
+  m_pDetailsView->Freeze();
+  m_pDetailsView->DeleteAllItems();
 
   m_oCurrentFolderId = oItem;
 

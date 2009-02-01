@@ -28,6 +28,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <wx/listctrl.h>
 #include <wx/treectrl.h>
 #include <Rainman2.h>
+#include "frmAttribPreview.h"
 
 class frmFileStoreViewer : public wxFrame
 {
@@ -43,6 +44,8 @@ public:
   void onFileDoAction  (wxListEvent    &e);
   void onTreeExpanding (wxTreeEvent    &e);
   void onTreeSelection (wxTreeEvent    &e);
+
+  void onClosePreviewWindow(wxCloseEvent &e);
 
   enum
   {
@@ -68,6 +71,7 @@ protected:
   wxChoice    *m_pDirectoryDefaultActionList;
   wxChoice    *m_pFileDefaultActionList;
   wxImageList *m_pIcons;
+  frmAttribPreview *m_pAttribPreviewWindow;
   wxString     m_sBaseTitle,
                m_sDateFormat,
                m_sCurrentShortName;

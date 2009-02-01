@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;$(WXWIN)\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;$(WXWIN)\include\msvc&quot;;&quot;$(WXWIN)\include&quot;"
+				AdditionalIncludeDirectories="&quot;$(WXWIN)\contrib\propgrid\include&quot;;&quot;$(WXWIN)\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;$(WXWIN)\include\msvc&quot;;&quot;$(WXWIN)\include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;WXUSINGDLL;wxUSE_UNICODE =1"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Rainman2d.lib"
+				AdditionalDependencies="Rainman2d.lib wxcode_msw28ud_propgrid.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;$(WXWIN)\contrib\propgrid\lib\vc_dll&quot;;&quot;E:\CPP\lua-5.1.4\Debug&quot;;E:\CPP\2K5\ModStudio2\lib;&quot;$(WXWIN)\lib\vc_dll&quot;"
 				GenerateDebugInformation="true"
@@ -117,7 +117,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="&quot;$(WXWIN)\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;$(WXWIN)\include\msvc&quot;;&quot;$(WXWIN)\include&quot;"
+				AdditionalIncludeDirectories="&quot;$(WXWIN)\contrib\propgrid\include&quot;;&quot;$(WXWIN)\contrib\include&quot;;E:\CPP\2K5\ModStudio2\Rainman2\include;&quot;$(WXWIN)\include\msvc&quot;;&quot;$(WXWIN)\include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;WXUSINGDLL;wxUSE_UNICODE =1"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -136,7 +136,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Rainman2.lib"
+				AdditionalDependencies="Rainman2.lib wxcode_msw28u_propgrid.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(WXWIN)\contrib\propgrid\lib\vc_dll&quot;;&quot;E:\CPP\lua-5.1.4\Debug&quot;;E:\CPP\2K5\ModStudio2\lib;&quot;$(WXWIN)\lib\vc_dll&quot;"
 				GenerateDebugInformation="true"
@@ -181,6 +181,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\frmAttribPreview.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\frmExtract.cpp"
 				>
 			</File>
@@ -196,6 +200,10 @@
 			>
 			<File
 				RelativePath=".\application.h"
+				>
+			</File>
+			<File
+				RelativePath=".\frmAttribPreview.h"
 				>
 			</File>
 			<File
