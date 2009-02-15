@@ -45,6 +45,7 @@ public:
   void onTreeExpanding (wxTreeEvent    &e);
   void onTreeSelection (wxTreeEvent    &e);
 
+  void onCloseSelf(wxCloseEvent &e);
   void onClosePreviewWindow(wxCloseEvent &e);
 
   enum

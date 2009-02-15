@@ -37,6 +37,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <memory>
 
 BEGIN_EVENT_TABLE(frmFileStoreViewer, wxFrame)
+  EVT_CLOSE              (             frmFileStoreViewer::onCloseSelf     )
   EVT_LIST_ITEM_ACTIVATED(LST_DETAILS, frmFileStoreViewer::onFileDoAction  )
   EVT_MENU               (wxID_OPEN  , frmFileStoreViewer::onOpen          )
   EVT_MENU               (MNU_OPEN_FS, frmFileStoreViewer::onOpenFileSystem)
@@ -311,6 +312,13 @@ void frmFileStoreViewer::onFileDoAction(wxListEvent &e)
 #endif
     break;
   }
+}
+
+void frmFileStoreViewer::onCloseSelf(wxCloseEvent &e)
+{
+  if(m_pAttribPreviewWindow)
+    m_pAttribPreviewWindow->Disconnect(wxID_ANY, wxEVT_CLOSE_WINDOW);
+  Destroy();
 }
 
 void frmFileStoreViewer::onClosePreviewWindow(wxCloseEvent &e)
