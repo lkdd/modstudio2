@@ -26,6 +26,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "rgd_dict.h"
 #include "exception.h"
 #include "hash.h"
+#include <stack>
 #ifdef RAINMAN2_USE_RBF
 
 RbfAttributeFile::RbfAttributeFile() throw()
@@ -428,6 +429,67 @@ RbfWriter::~RbfWriter()
   }
 }
 
+void RbfWriter::rewriteInRelicStyle(RbfWriter *pDestination) const throw()
+{
+  std::stack<unsigned long> qTables;
+  pDestination->m_vTables[0] = m_vTables[0];
+  for(qTables.push(0); !qTables.empty();)
+  {
+    RbfAttributeFile::_table_raw_t *pTable = &pDestination->m_vTables[qTables.top()];
+    qTables.pop();
+    unsigned long *pIndicies = &pTable->iChildIndex;
+    if(pTable->iChildCount > 1)
+    {
+      unsigned long iNewIndex = pDestination->m_vDataIndex.size();
+      pDestination->m_vDataIndex.push_back(&m_vDataIndex[pTable->iChildIndex], &m_vDataIndex[pTable->iChildIndex] + pTable->iChildCount);
+      pTable->iChildIndex = iNewIndex;
+      pIndicies = &pDestination->m_vDataIndex[iNewIndex];
+    }
+    else if(pTable->iChildCount == 0)
+    {
+      pTable->iChildIndex = 0;
+    }
+    unsigned long iCount = pTable->iChildCount;
+    std::stack<unsigned long> stkChildTables;
+    for(unsigned long i = 0; i < iCount; ++i)
+    {
+      unsigned long iNewIndex = pDestination->m_vData.size();
+      pDestination->m_vData.push_back(m_vData[pIndicies[i]]);
+      pIndicies[i] = iNewIndex;
+
+      RbfAttributeFile::_data_raw_t *pData = &pDestination->m_vData.last();
+      pDestination->setKey(m_vKeys[pData->iKeyIndex], 64);
+      pData->iKeyIndex = pDestination->m_oDataValue.iKeyIndex;
+      switch(pData->eType)
+      {
+      case RbfAttributeFile::_data_raw_t::T_Table:
+        {
+          unsigned long iNewIndex = pDestination->m_vTables.size();
+          stkChildTables.push(iNewIndex);
+          pDestination->m_vTables.push_back(m_vTables[pData->uValue]);
+          pData->uValue = iNewIndex;
+          break;
+        }
+      case RbfAttributeFile::_data_raw_t::T_String:
+        {
+          unsigned long iNewIndex = pDestination->m_pStringBlock->getLengthUsed();
+          const char* sRaw = m_pStringBlock->getBuffer() + pData->uValue;
+          pDestination->m_pStringBlock->writeArray(sRaw, 4 + *reinterpret_cast<const unsigned long*>(sRaw));
+          pData->uValue = iNewIndex;
+          break;
+        }
+      default:
+        break;
+      }
+    }
+    while(!stkChildTables.empty())
+    {
+      qTables.push(stkChildTables.top());
+      stkChildTables.pop();
+    }
+  }
+}
+
 void RbfWriter::initialise()
 {
   // reserve some memory
@@ -436,6 +498,9 @@ void RbfWriter::initialise()
   m_vData.reserve(2);
   m_vTables.reserve(2);
   m_vDataIndex.reserve(2);
+
+  // reserve table #0
+  m_vTables[0];
 
   // heap allocations
   m_pStringBlock = new MemoryWriteFile;
@@ -548,32 +613,47 @@ unsigned long RbfWriter::popTable() throw(...)
     if(m_stkTables.empty())
       iTableIndex = 0;
     else
-      iTableIndex = m_vTables.size() + 1;
+      iTableIndex = m_vTables.size();
     m_vTables[iTableIndex] = oTable;
     return iTableIndex;
   }
 }
 
-void RbfWriter::writeToFile(IFile *pFile) const throw(...)
+void RbfWriter::writeToFile(IFile *pFile, bool bRelicStyle) const throw(...)
 {
   RbfAttributeFile::_header_raw_t oHead;
-  oHead.iKeysOffset = 48;
+  memcpy(oHead.sTypeAndVer, "RBF V0.1", 8);
   oHead.iKeysCount = m_vKeys.size();
-  oHead.iDataOffset = oHead.iKeysOffset + 64 * oHead.iKeysCount;
   oHead.iDataCount = m_vData.size();
-  oHead.iTablesOffset = oHead.iDataOffset + 12 * oHead.iDataCount;
   oHead.iTablesCount = m_vTables.size();
-  oHead.iDataIndexOffset = oHead.iTablesOffset + 8 * oHead.iTablesCount;
   oHead.iDataIndexCount = m_vDataIndex.size();
-  oHead.iStringsOffset = oHead.iDataIndexOffset + 4 * oHead.iDataIndexCount;
   oHead.iStringsLength = m_pStringBlock->getLengthUsed();
-
-  pFile->writeArray("RBF V0.1", 8);
-  pFile->writeOne(oHead);
-  pFile->writeArray(&*m_vKeys, m_vKeys.size());
-  pFile->writeArray(&*m_vData, m_vData.size());
-  pFile->writeArray(&*m_vTables, m_vTables.size());
-  pFile->writeArray(&*m_vDataIndex, m_vDataIndex.size());
+  if(bRelicStyle)
+  {
+    oHead.iTablesOffset = 48;
+    oHead.iKeysOffset = oHead.iTablesOffset + 8 * oHead.iTablesCount;
+    oHead.iDataIndexOffset = oHead.iKeysOffset + 64 * oHead.iKeysCount;
+    oHead.iDataOffset = oHead.iDataIndexOffset + 4 * oHead.iDataIndexCount;
+    oHead.iStringsOffset = oHead.iDataOffset + 12 * oHead.iDataCount;
+    pFile->writeOne(oHead);
+    pFile->writeArray(&*m_vTables, m_vTables.size());
+    pFile->writeArray(&*m_vKeys, m_vKeys.size());
+    pFile->writeArray(&*m_vDataIndex, m_vDataIndex.size());
+    pFile->writeArray(&*m_vData, m_vData.size());
+  }
+  else
+  {
+    oHead.iKeysOffset = 48;
+    oHead.iDataOffset = oHead.iKeysOffset + 64 * oHead.iKeysCount;
+    oHead.iTablesOffset = oHead.iDataOffset + 12 * oHead.iDataCount;
+    oHead.iDataIndexOffset = oHead.iTablesOffset + 8 * oHead.iTablesCount;
+    oHead.iStringsOffset = oHead.iDataIndexOffset + 4 * oHead.iDataIndexCount;
+    pFile->writeOne(oHead);
+    pFile->writeArray(&*m_vKeys, m_vKeys.size());
+    pFile->writeArray(&*m_vData, m_vData.size());
+    pFile->writeArray(&*m_vTables, m_vTables.size());
+    pFile->writeArray(&*m_vDataIndex, m_vDataIndex.size());
+  }
   pFile->writeArray(m_pStringBlock->getBuffer(), m_pStringBlock->getLengthUsed());
 }
 
