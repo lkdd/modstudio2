@@ -41,6 +41,7 @@ struct command_line_options_t
     , bSort(true)
     , bCache(true)
     , bInputIsList(false)
+    , bRelicStyle(false)
   {
   }
 
@@ -61,6 +62,7 @@ struct command_line_options_t
   char cPathSeperator;
   bool bSort;
   bool bCache;
+  bool bRelicStyle;
   bool bInputIsList;
 } g_oCommandLine;
 
@@ -608,7 +610,8 @@ public:
 
   void endStatement()
   {
-    m_pWriter->setTable();
+    if(!m_stkTableLineNumbers.empty())
+      m_pWriter->setTable();
   }
 
   void inputError(const wchar_t *sReason)
@@ -716,7 +719,15 @@ void ConvertTxtToRbf(IFile *pIn, IFile *pOut)
 
   oWriter.initialise();
   oReader.read();
-  oWriter.writeToFile(pOut);
+  if(g_oCommandLine.bRelicStyle)
+  {
+    RbfWriter oRelicStyled;
+    oRelicStyled.initialise();
+    oWriter.rewriteInRelicStyle(&oRelicStyled);
+    oRelicStyled.writeToFile(pOut, true);
+  }
+  else
+    oWriter.writeToFile(pOut);
 
   VERBOSEwprintf(L"RBF stats:\n");
   VERBOSEwprintf(L"  %lu tables\n", oWriter.getTableCount());
@@ -787,6 +798,9 @@ int wmain(int argc, wchar_t** argv)
         case 's':
           g_oCommandLine.bSort = false;
           break;
+        case 'R':
+          g_oCommandLine.bRelicStyle = true;
+          // no break
         case 'c':
           g_oCommandLine.bCache = false;
           break;
@@ -835,7 +849,7 @@ int wmain(int argc, wchar_t** argv)
   if(g_oCommandLine.sInput.isEmpty())
   {
     fwprintf(stderr, L"Expected an input filename. Command format is:\n");
-    fwprintf(stderr, L"%s -i infile [-L | -o outfile] [-q | -v] [-p \".\" | -p \" \"] [-u ucsfile] [-U threshold] [-s] [-c]\n", wcsrchr(*argv, '\\') ? (wcsrchr(*argv, '\\') + 1) : (*argv));
+    fwprintf(stderr, L"%s -i infile [-L | -o outfile] [-q | -v] [-p \".\" | -p \" \"] [-u ucsfile] [-U threshold] [-s] [-R | -c]\n", wcsrchr(*argv, '\\') ? (wcsrchr(*argv, '\\') + 1) : (*argv));
     fwprintf(stderr, L"  -i; file to read from, either a .rbf file or a .txt file\n");
     fwprintf(stderr, L"  -o; file to write to, either a .rbf file or a .txt file\n");
     fwprintf(stderr, L"      if not given, then uses input name with .txt swapped for .rbf (and vice versa)\n");
@@ -849,6 +863,7 @@ int wmain(int argc, wchar_t** argv)
     fwprintf(stderr, L"  -s; Disable sorting of values (use order from RBF file)\n");
     fwprintf(stderr, L"  Options for writing RBF files:\n");
     fwprintf(stderr, L"  -c; Disable caching of data (faster, but makes larger file)\n");
+    fwprintf(stderr, L"  -R; Write in Relic style (takes longer, also forces -c)\n");
     
     return -4;
   }
@@ -889,6 +904,7 @@ int wmain(int argc, wchar_t** argv)
   }
   catch(RainException *pE)
   {
+    bAllGood = false;
     fwprintf(stderr, L"Fatal exception:\n");
     for(RainException *p = pE; p; p = p->getPrevious())
     {
