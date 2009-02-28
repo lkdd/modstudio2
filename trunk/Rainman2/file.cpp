@@ -485,11 +485,12 @@ void FileSystemStore::_ensureGotEntryPoints() throw()
 class RainFileAdapter : public IFile
 {
 public:
-  RainFileAdapter(FILE* pRawFile) throw()
-    : m_pFile(pRawFile) {}
+  RainFileAdapter(FILE* pRawFile, bool bCloseWhenDone = true) throw()
+    : m_pFile(pRawFile), m_bCloseWhenDone(bCloseWhenDone) {}
   virtual ~RainFileAdapter() throw()
   {
-    fclose(m_pFile);
+    if(m_bCloseWhenDone)
+      fclose(m_pFile);
   }
 
   virtual void read(void* pDestination, size_t iItemSize, size_t iItemCount) throw(...)
@@ -532,7 +533,13 @@ public:
 
 protected:
   FILE* m_pFile;
+  bool m_bCloseWhenDone;
 };
+
+RAINMAN2_API IFile* RainOpenFilePtr(FILE* pFile, bool bCloseWhenDone) throw(...)
+{
+  return CHECK_ALLOCATION(new NOTHROW RainFileAdapter(pFile, bCloseWhenDone));
+}
 
 IFile* RainOpenFile(const RainString& sPath, eFileOpenMode eMode) throw(...)
 {

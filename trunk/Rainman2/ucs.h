@@ -34,6 +34,7 @@ public:
   ~UcsFile();
 
   void load(IFile *pFile) throw(...);
+  void loadFromFile(const RainString& sFilename) throw(...);
 
   const RainString* operator[](unsigned long iKey) const;
 

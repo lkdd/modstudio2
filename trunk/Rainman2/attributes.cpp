@@ -26,3 +26,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 IAttributeValue::~IAttributeValue() {}
 IAttributeTable::~IAttributeTable() {}
+
+const char* IAttributeValue::getValueStringRaw(size_t* iLength) const throw()
+{
+  return NULL;
+}

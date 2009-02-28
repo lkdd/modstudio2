@@ -34,6 +34,18 @@ UcsFile::~UcsFile()
 {
 }
 
+void UcsFile::loadFromFile(const RainString& sFilename) throw(...)
+{
+  IFile *pFile = 0;
+  try
+  {
+    pFile = RainOpenFile(sFilename, FM_Read);
+    load(pFile);
+  }
+  CATCH_THROW_SIMPLE_(delete pFile, L"Unable to load UCS file\"%s\"", sFilename.getCharacters());
+  delete pFile;
+}
+
 void UcsFile::load(IFile *pFile) throw(...)
 {
   m_mapStrings.clear();

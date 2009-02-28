@@ -499,6 +499,7 @@ RAINMAN2_API FileSystemStore* RainGetFileSystemStore();
 
 RAINMAN2_API IFile* RainOpenFile(const RainString& sPath, eFileOpenMode eMode) throw(...);
 RAINMAN2_API IFile* RainOpenFileNoThrow(const RainString& sPath, eFileOpenMode eMode) throw();
+RAINMAN2_API IFile* RainOpenFilePtr(FILE* pFile, bool bCloseWhenDone = true) throw(...);
 RAINMAN2_API bool RainDoesFileExist(const RainString& sPath) throw();
 RAINMAN2_API void RainDeleteFile(const RainString& sPath) throw(...);
 RAINMAN2_API bool RainDeleteFileNoThrow(const RainString& sPath) throw();
