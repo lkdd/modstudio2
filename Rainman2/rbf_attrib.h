@@ -166,7 +166,9 @@ public:
   void pushTable() throw(...);
   unsigned long popTable() throw(...);
 
-  void writeToFile(IFile *pFile) const throw(...);
+  void rewriteInRelicStyle(RbfWriter *pDestination) const throw();
+
+  void writeToFile(IFile *pFile, bool bRelicStyle = false) const throw(...);
 
   unsigned long getKeyCount() const {return m_vKeys.size();}
   unsigned long getTableCount() const {return m_vTables.size();}

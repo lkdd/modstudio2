@@ -86,6 +86,11 @@ public:
     return *m_pMemory;
   }
 
+  const T& operator[] (TSize iIndex) const
+  {
+    return m_pMemory[iIndex];
+  }
+
   T& operator[] (TSize iIndex)
   {
     if(iIndex >= m_iSize)
@@ -130,7 +135,7 @@ public:
     return (*this)[size()];
   }
 
-  void push_back(T& value)
+  void push_back(const T& value)
   {
     (*this)[size()] = value;
   }
