@@ -98,6 +98,7 @@ public:
   virtual IAttributeTable* getValueTable  () const throw(...) = 0;
   virtual float            getValueFloat  () const throw(...) = 0;
   virtual long             getValueInteger() const throw(...) = 0;
+  virtual const char*      getValueStringRaw(size_t* iLength) const throw();
 
   virtual void setName(unsigned long iName          ) throw(...) = 0;
   virtual void setType(eAttributeValueTypes eNewType) throw(...) = 0;

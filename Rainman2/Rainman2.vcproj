@@ -510,6 +510,10 @@
 				Name="Misc"
 				>
 				<File
+					RelativePath=".\containers.h"
+					>
+				</File>
+				<File
 					RelativePath=".\hash.h"
 					>
 				</File>
