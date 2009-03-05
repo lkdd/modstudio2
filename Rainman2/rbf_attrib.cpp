@@ -429,7 +429,7 @@ RbfWriter::~RbfWriter()
   }
 }
 
-void RbfWriter::rewriteInRelicStyle(RbfWriter *pDestination) const throw()
+void RbfWriter::rewriteInRelicStyle(RbfWriter *pDestination) const throw(...)
 {
   std::stack<unsigned long> qTables;
   pDestination->m_vTables[0] = m_vTables[0];
@@ -503,7 +503,8 @@ void RbfWriter::initialise()
   m_vTables[0];
 
   // heap allocations
-  m_pStringBlock = new MemoryWriteFile;
+  if(m_pStringBlock == 0)
+    m_pStringBlock = new MemoryWriteFile;
 }
 
 #define CACHED_SET(hash, map, field, code, always, saved) \
